@@ -149,6 +149,12 @@
             <button class="go" id="goF">적용</button>
           </div>
         </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">현재 수준 비교</h2>
+          <svg id="barsF" viewBox="0 0 260 300" style="width:100%;display:block"></svg>
+          <div class="note">최신 고시일 기준, 원화 환산</div>
+        </div>
         <div class="panel">
           <h2 class="ptitle" id="titleF">환율 추이</h2>
           <div class="chart-wrap">
@@ -157,6 +163,7 @@
           </div>
           <div class="legend" id="legF"></div>
           <div class="note">ECB 기준환율은 영업일 기준 하루 1회(CET 16시경) 발표됩니다. 실시간 호가가 아니며 은행 고시환율과 다를 수 있습니다.</div>
+        </div>
         </div>
         <details><summary>최근 데이터 표 보기 (선택 구간 최근 30영업일)</summary>
           <div style="max-height:300px;overflow:auto"><table id="tblF"></table></div>
@@ -186,6 +193,12 @@
             <button class="go" id="goI">적용</button>
           </div>
         </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">전일 등락 비교</h2>
+          <svg id="barsIL" viewBox="0 0 260 300" style="width:100%;display:block"></svg>
+          <div class="note">종합지수 전일 대비 등락률</div>
+        </div>
         <div class="panel">
           <h2 class="ptitle" id="titleI">지수 추이</h2>
           <div class="chart-wrap">
@@ -195,12 +208,13 @@
           <div class="legend" id="legI"></div>
           <div class="note" id="noteI"></div>
         </div>
+        </div>
         <div class="panel">
           <h2 class="ptitle">산업별 성과 · 선택 기간 수익률</h2>
           <div style="display:flex;gap:6px;margin-bottom:10px">
             <button class="rbtn on" id="mkKR">KOSPI 업종</button>
             <button class="rbtn" id="mkKQ">KOSDAQ 업종</button>
-            <button class="rbtn" id="mkUS">미국 섹터</button>
+            <button class="rbtn" id="mkUS">S&P 섹터</button>
           </div>
           <svg id="barsI" viewBox="0 0 820 100" style="width:100%;display:block"></svg>
           <div class="note" id="secNoteI"></div>
@@ -218,7 +232,7 @@
         <div class="controls">
           <button class="rbtn on" id="gKR">KOSPI 업종</button>
           <button class="rbtn" id="gKQ">KOSDAQ 업종</button>
-          <button class="rbtn" id="gUS">미국 섹터</button>
+          <button class="rbtn" id="gUS">S&P 섹터</button>
         </div>
         <div class="controls" id="chipsS"></div>
         <div class="controls" id="rangesS">
@@ -235,6 +249,12 @@
             <button class="go" id="goS">적용</button>
           </div>
         </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">선택 기간 수익률</h2>
+          <svg id="barsSL" viewBox="0 0 260 300" style="width:100%;display:block"></svg>
+          <div class="note">막대를 누르면 해당 업종이 선택됩니다</div>
+        </div>
         <div class="panel">
           <h2 class="ptitle" id="titleS">산업별 지수 비교</h2>
           <div class="chart-wrap">
@@ -244,9 +264,10 @@
           <div class="legend" id="legS"></div>
           <div class="note" id="noteS"></div>
         </div>
+        </div>
         <footer class="foot">
-          <div><b>사용법</b> · 상단에서 시장(KOSPI 업종/KOSDAQ 업종/미국 섹터)을 고르고, 업종 버튼으로 개별 지수를 보거나 '전체 비교'로 구간 시작=100 지수 비교를 봅니다.</div>
-          <div><b>데이터</b> · 03 탭과 동일한 data_indices.js 를 사용합니다(수집 스크립트 v3부터 KOSDAQ 업종 포함). 미국 섹터는 SPDR 섹터 ETF 종가 기준입니다.</div>
+          <div><b>사용법</b> · 상단에서 시장(KOSPI 업종/KOSDAQ 업종/S&P 섹터)을 고르고, 업종 버튼으로 개별 지수를 보거나 '전체 비교'로 구간 시작=100 지수 비교를 봅니다.</div>
+          <div><b>데이터</b> · 03 탭과 동일한 data_indices.js 를 사용합니다(수집 스크립트 v3부터 KOSDAQ 업종 포함). S&P 섹터는 SPDR 섹터 ETF 종가 기준입니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
       </section>
@@ -262,6 +283,23 @@
 // ══════════ 공통 ══════════
 const DAY=86400000;
 const fmtD=t=>{const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+window.IN_hbar0=function(svg,rows,fmt,onClick){
+  if(!rows.length){svg.setAttribute("viewBox","0 0 260 60");svg.innerHTML='<text x="130" y="35" text-anchor="middle" fill="#98A1A9" font-size="11">데이터 없음</text>';return;}
+  rows.sort((a,b)=>b.val-a.val);
+  const rowH=30,PL=92,PR=46,Wb=260,Hb=rows.length*rowH+8;
+  const maxA=Math.max.apply(null,rows.map(r=>Math.abs(r.val)))||1;
+  const x0=PL+(Wb-PL-PR)/2;
+  let g='<line x1="'+x0+'" y1="4" x2="'+x0+'" y2="'+(Hb-4)+'" stroke="#C9C4B6"/>';
+  rows.forEach((r,i)=>{
+    const y=i*rowH+6,w=Math.abs(r.val)/maxA*((Wb-PL-PR)/2-3),pos=r.val>=0,bx=pos?x0:x0-w,col=pos?"#17694F":"#2F4B7C";
+    g+='<text x="'+(PL-6)+'" y="'+(y+12)+'" text-anchor="end" fill="#6B7680" font-size="10" font-family="Arial,sans-serif">'+r.label+'</text>';
+    g+='<rect '+(onClick?'class="hb" data-k="'+r.k+'" style="cursor:pointer" ':'')+'x="'+bx.toFixed(1)+'" y="'+y+'" width="'+Math.max(w,1).toFixed(1)+'" height="16" rx="3" fill="'+col+'"/>';
+    g+='<text x="'+(pos?x0+w+4:x0-w-4)+'" y="'+(y+12)+'" text-anchor="'+(pos?"start":"end")+'" fill="#1E2A33" font-size="10" font-weight="700" font-family="Arial,sans-serif">'+fmt(r.val)+'</text>';
+  });
+  svg.setAttribute("viewBox","0 0 "+Wb+" "+Hb);
+  svg.innerHTML=g;
+  if(onClick)svg.querySelectorAll(".hb").forEach(el=>{el.onclick=()=>onClick(el.getAttribute("data-k"));});
+};
 
 // ══════════ 탭 전환 ══════════
 const secR=document.getElementById("secR"),secF=document.getElementById("secF");
@@ -513,6 +551,22 @@ function buildCards(dates,rates){
     kpisEl.appendChild(b);
   });
   document.getElementById("stamp").textContent="02 환율 · ECB 일별 기준환율 · 최신 고시일 "+dl;
+  renderBarsF(rates[dl]);
+}
+function renderBarsF(r){
+  const svg=document.getElementById("barsF");if(!svg)return;
+  const items=Object.keys(PAIRS).map(k=>({label:PAIRS[k].label,v:PAIRS[k].calc(r),c:PAIRS[k].color})).sort((x,y)=>y.v-x.v);
+  const W=260,rowH=44,PL=76,PR=54,H=items.length*rowH+10;
+  const maxV=Math.max.apply(null,items.map(i2=>i2.v));
+  let g="";
+  items.forEach((it,i2)=>{
+    const y=i2*rowH+14,w=(it.v/maxV)*(W-PL-PR);
+    g+='<text x="'+(PL-8)+'" y="'+(y+13)+'" text-anchor="end" fill="#6B7680" font-size="10" font-family="Arial,sans-serif">'+it.label+'</text>';
+    g+='<rect x="'+PL+'" y="'+y+'" width="'+w.toFixed(1)+'" height="18" rx="3" fill="'+it.c+'"/>';
+    g+='<text x="'+(PL+w+6)+'" y="'+(y+13)+'" fill="#1E2A33" font-size="10" font-weight="700" font-family="Arial,sans-serif">'+fmtV(it.v,1)+'</text>';
+  });
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  svg.innerHTML=g;
 }
 function showError(el,detail){
   el.innerHTML='<div class="panel" style="grid-column:1/-1;margin:0"><div class="status">환율 데이터를 불러오지 못했습니다.<br>'
@@ -712,8 +766,8 @@ return{init,retry};
 // ══════════ 03 종합 주가지수 (data_indices.js 필요) ══════════
 const IDX=(()=>{
 const MAINS=[["KOSPI","#17694F"],["KOSDAQ","#3D8A8C"],["SPX","#E8862E"],["IXIC","#A63D40"],["N225","#6B4E9B"],["SSE","#C9A227"]];
-const GRP={KR:{g:"KR_SECTOR",n:"KOSPI 업종"},KQ:{g:"KQ_SECTOR",n:"KOSDAQ 업종"},US:{g:"US_SECTOR",n:"미국 섹터"}};
-const LINK={KOSPI:"KR",KOSDAQ:"KQ",SPX:"US",IXIC:"US"};
+const GRP={KR:{g:"KR_SECTOR",n:"KOSPI 업종"},KQ:{g:"KQ_SECTOR",n:"KOSDAQ 업종"},US:{g:"US_SECTOR",n:"S&P 섹터"}};
+const LINK={KOSPI:"KR",KOSDAQ:"KQ",SPX:"US"};
 let cur="ALL",curRange="1y",cT0=null,cT1=null,mk="KR",inited=false;
 const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
 const fmtN=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -809,6 +863,15 @@ function drawLines(svg,tipEl,crossId,list,dp,fmtA){
   return{rt0,rt1};
 }
 window.IN_drawLines=drawLines;window.IN_inWin=inWin;
+function renderBarsIL(){
+  const s=S();if(!s)return;
+  const svg=document.getElementById("barsIL");if(!svg)return;
+  const rows=[];
+  MAINS.forEach(m=>{const d=s[m[0]];if(!d||d.pts.length<2)return;
+    const v=d.pts[d.pts.length-1][1],pv=d.pts[d.pts.length-2][1];
+    rows.push({k:m[0],label:d.label,val:(v-pv)/pv*100});});
+  window.IN_hbar0(svg,rows,v=>(v>0?"+":"")+v.toFixed(2)+"%",null);
+}
 function colorOf(k){
   const m=MAINS.find(x=>x[0]===k);
   if(m)return m[1];
@@ -849,19 +912,17 @@ function draw(){
   syncSector();
 }
 function syncSector(){
-  // 선택 지수에 대응하는 업종 그룹으로 자동 연동
-  let note="";
-  if(cur!=="ALL"){
-    const lk=LINK[cur];
-    if(lk){mk=lk;
-      if(cur==="IXIC")note="NASDAQ 전용 섹터지수는 없어 미국(S&P) 섹터 수익률을 참고로 표시합니다. ";
-    }else{
-      drawSectorMsg(S()&&S()[cur]?S()[cur].label+"의 산업별 지수는 현재 미수집입니다(니케이225·상해종합은 무료 소스 부재).":"");
-      setMkButtons();return;
-    }
-  }
-  setMkButtons();
-  drawSectors(note);
+  const btns={KR:"mkKR",KQ:"mkKQ",US:"mkUS"};
+  const setVis=f=>Object.keys(btns).forEach(g=>{const el=document.getElementById(btns[g]);if(el)el.style.display=f(g)?"":"none";});
+  if(cur==="ALL"){setVis(()=>true);setMkButtons();drawSectors("");return;}
+  const lk=LINK[cur];
+  if(lk){mk=lk;setVis(g=>g===lk);setMkButtons();drawSectors("");return;}
+  setVis(()=>false);
+  let msg="산업별 지수 미제공";
+  if(cur==="IXIC")msg="NASDAQ 전용 섹터지수가 없어 산업별 데이터를 표시하지 않습니다.";
+  else if(cur==="N225")msg="니케이225의 산업별 지수는 무료 소스 부재로 미수집입니다.";
+  else if(cur==="SSE")msg="상해종합의 산업별 지수는 무료 소스 부재로 미수집입니다.";
+  drawSectorMsg(msg);
 }
 function setMkButtons(){
   [["mkKR","KR"],["mkKQ","KQ"],["mkUS","US"]].forEach(p=>{
@@ -944,14 +1005,14 @@ function init(){
   if(inited)return;inited=true;
   wire();
   if(!S()){setupMsg();return;}
-  buildCards();draw();
+  buildCards();renderBarsIL();draw();
 }
 return{init};
 })();
 
 // ══════════ 04 산업별 주가지수 ══════════
 const SEC=(()=>{
-const GRP={KR:{g:"KR_SECTOR",n:"KOSPI 업종"},KQ:{g:"KQ_SECTOR",n:"KOSDAQ 업종"},US:{g:"US_SECTOR",n:"미국 섹터"}};
+const GRP={KR:{g:"KR_SECTOR",n:"KOSPI 업종"},KQ:{g:"KQ_SECTOR",n:"KOSDAQ 업종"},US:{g:"US_SECTOR",n:"S&P 섹터"}};
 const PAL=["#17694F","#2F4B7C","#3D8A8C","#C9A227","#A63D40","#E8862E","#6B4E9B","#8A6F1B","#5E6A72","#B4441B","#4E8F79"];
 let grp="KR",sel="ALL",curRange="1y",cT0=null,cT1=null,inited=false,pendingOpen=null;
 const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
@@ -1014,8 +1075,19 @@ function draw(){
       const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
       document.getElementById("legS").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
     }else document.getElementById("legS").innerHTML="";
-    document.getElementById("noteS").textContent=(grp==="US"?"미국 섹터는 SPDR 섹터 ETF 종가 기준입니다.":"");
+    document.getElementById("noteS").textContent=(grp==="US"?"S&P 섹터는 SPDR 섹터 ETF 종가 기준입니다.":"");
   }
+  drawBarsSL();
+}
+function drawBarsSL(){
+  const s=S(),svg=document.getElementById("barsSL");
+  if(!svg)return;
+  if(!s){window.IN_hbar0(svg,[],v=>"",null);return;}
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const rows=[];
+  keysOf().forEach(k=>{const w=window.IN_inWin(s[k].pts,t0,t1);if(w.length<2)return;
+    rows.push({k,label:s[k].label,val:(w[w.length-1][1]-w[0][1])/w[0][1]*100});});
+  window.IN_hbar0(svg,rows,v=>(v>0?"+":"")+v.toFixed(1)+"%",k=>{sel=k;buildChips();draw();});
 }
 function setGrpButtons(){
   [["gKR","KR"],["gKQ","KQ"],["gUS","US"]].forEach(p=>{
