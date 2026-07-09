@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Investment Navigator</title>
+<style>
+  :root{
+    --bg:#ECEAE3;--panel:#FFFFFF;--panel-line:#DDD9CE;
+    --ink:#1E2A33;--muted:#6B7680;--faint:#98A1A9;
+    --green:#17694F;--orange:#E8862E;--navy:#2F4B7C;--mustard:#C9A227;--brick:#A63D40;--tealc:#3D8A8C;
+    --disp:Arial,"Malgun Gothic",sans-serif;--mono:Arial,"Malgun Gothic",sans-serif;--body:Arial,"Malgun Gothic",sans-serif;
+    --shadow:0 1px 3px rgba(30,42,51,.08),0 4px 14px rgba(30,42,51,.06);
+  }
+  *{box-sizing:border-box}html,body{margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh}
+  .frame{max-width:1180px;margin:0 auto;padding:22px 18px 46px}
+  .layout{display:grid;grid-template-columns:1fr 54px;gap:12px}
+  .band{border-radius:10px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;min-height:640px}
+  .band span{writing-mode:vertical-rl;font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:.28em;color:#F3EFE4}
+  .head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:6px}
+  .brand{font-family:var(--disp);font-weight:700;font-size:clamp(20px,3.4vw,28px);letter-spacing:-.01em}
+  .brand em{font-style:normal;color:var(--green)}
+  .stamp{font-family:var(--mono);font-size:11px;color:var(--muted)}
+  .pnav{display:flex;gap:8px;margin-bottom:12px}
+  .pnav button{font-family:var(--mono);font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--panel-line);border-radius:7px;padding:6px 14px;cursor:pointer}
+  .pnav button.on{color:#fff;background:var(--green);border-color:var(--green);font-weight:700}
+  .pnav button:hover{border-color:var(--green)}
+  .kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;margin-bottom:12px}
+  .kpi{background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;box-shadow:var(--shadow);padding:12px 12px 10px;cursor:pointer;transition:.15s;position:relative;overflow:hidden;text-align:left;font:inherit;color:inherit}
+  .kpi:hover{transform:translateY(-2px)}
+  .kpi.on{outline:2px solid var(--green)}
+  .kpi .bar{position:absolute;left:0;top:0;bottom:0;width:5px}
+  .kpi .c{font-family:var(--disp);font-weight:600;font-size:12px;margin-left:6px}
+  .kpi .v{font-family:var(--mono);font-weight:700;font-size:clamp(14px,1.8vw,19px);margin:6px 0 2px 6px;letter-spacing:-.01em}
+  .kpi .s{font-family:var(--mono);font-size:10px;margin-left:6px;color:var(--muted)}
+  .chg{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.05em;padding:2px 6px;border-radius:5px;margin-left:6px}
+  .chg.up{color:#9A5B12;background:#F7E5CF}.chg.down{color:#2F4B7C;background:#DEE7F4}.chg.hold{color:#5E6A72;background:#E7EAEC}
+  .up{color:#B4441B}.down{color:var(--navy)}.flat{color:var(--muted)}
+  .controls{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;box-shadow:var(--shadow);padding:10px 12px;margin-bottom:12px}
+  .rbtn{font-family:var(--mono);font-size:12px;color:var(--muted);background:#F4F2EB;border:1px solid var(--panel-line);border-radius:7px;padding:6px 12px;cursor:pointer;transition:.15s}
+  .rbtn:hover{color:var(--ink);border-color:var(--green)}
+  .rbtn.on{color:#fff;background:var(--green);border-color:var(--green);font-weight:700}
+  .custom{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
+  .custom input[type=date]{font-family:var(--mono);font-size:12px;color:var(--ink);background:#F4F2EB;border:1px solid var(--panel-line);border-radius:7px;padding:5px 8px}
+  .custom .go{font-family:var(--mono);font-size:12px;color:#fff;background:var(--orange);border:1px solid var(--orange);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:700}
+  .main{display:grid;grid-template-columns:280px 1fr;gap:12px;margin-bottom:12px}
+  .panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;box-shadow:var(--shadow);padding:14px}
+  .ptitle{font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:0 0 10px}
+  .chart-wrap{position:relative}
+  svg.big{width:100%;display:block;touch-action:none}
+  .legend{display:flex;gap:12px;flex-wrap:wrap;padding-top:8px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+  .legend i{display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:5px;vertical-align:middle}
+  .tip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--panel-line);border-radius:8px;padding:8px 10px;font-family:var(--mono);font-size:11px;color:var(--ink);display:none;z-index:5;white-space:nowrap;box-shadow:var(--shadow)}
+  .tip .d{color:var(--faint);margin-bottom:3px}
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+  .status{font-family:var(--mono);font-size:12px;color:var(--muted);padding:24px 8px;text-align:center;line-height:1.7}
+  details{border:1px solid var(--panel-line);border-radius:10px;background:var(--panel);box-shadow:var(--shadow)}
+  summary{cursor:pointer;padding:11px 14px;font-family:var(--disp);font-size:13px;font-weight:600;color:var(--muted)}
+  summary:hover{color:var(--ink)}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{padding:7px 14px;text-align:left;border-top:1px solid var(--panel-line)}
+  th{color:var(--faint);font-weight:500;font-size:10.5px;font-family:var(--mono);letter-spacing:.06em}
+  td.v{font-family:var(--mono)}
+  td.up{color:#9A5B12}td.down{color:var(--navy)}
+  .foot{margin-top:16px;font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+  .foot b{color:var(--ink)}
+  .foot a{color:var(--green);text-decoration:none}
+  .foot a:hover{text-decoration:underline}
+  .retry{font-family:var(--mono);font-size:12px;color:#fff;background:var(--green);border:none;border-radius:7px;padding:7px 14px;cursor:pointer;font-weight:700}
+  button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+  @media (max-width:920px){.kpis{grid-template-columns:repeat(4,1fr)}.main{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.band{display:none}}
+  @media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.custom{margin-left:0}}
+</style>
+</head>
+<body>
+<div class="frame">
+  <header class="head">
+    <div class="brand">Investment <em>Navigator</em></div>
+    <div class="stamp" id="stamp">01 기준금리 · 확인일 2026-07-07 · 내장 데이터</div>
+  </header>
+  <nav class="pnav">
+    <button id="navR" class="on">01 기준금리</button>
+    <button id="navF">02 환율</button>
+    <button id="navI">03 종합 주가지수</button>
+    <button id="navS">04 산업별 주가지수</button>
+  </nav>
+
+  <div class="layout">
+    <div>
+      <!-- ══════════ 01 기준금리 ══════════ -->
+      <section id="secR">
+        <div class="kpis" id="kpisR"></div>
+        <div class="controls" id="rangesR">
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn" data-r="1y">1년</button>
+          <button class="rbtn on" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0R" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1R" aria-label="종료일">
+            <button class="go" id="goR">적용</button>
+          </div>
+        </div>
+        <div class="main">
+          <div class="panel">
+            <h2 class="ptitle">현재 수준 비교</h2>
+            <svg id="barsR" viewBox="0 0 260 300"></svg>
+            <div class="note">미국은 목표 상한 기준</div>
+          </div>
+          <div class="panel">
+            <h2 class="ptitle" id="titleR">금리 추이</h2>
+            <div class="chart-wrap">
+              <svg class="big" id="chartR" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+              <div class="tip" id="tipR"></div>
+            </div>
+            <div class="legend" id="legR"></div>
+            <div class="note" id="noteR"></div>
+          </div>
+        </div>
+        <details><summary>변경 이력 표 보기</summary>
+          <div style="max-height:300px;overflow:auto"><table id="tblR"></table></div>
+        </details>
+        <footer class="foot">
+          <div><b>보기 전환</b> · 상단 카드를 누르면 해당국 차트로, '비교' 카드를 누르면 통합 차트로 전환됩니다. 점선은 한·미 금리차(한국 − 미국 상한)입니다.</div>
+          <div><b>데이터 성격</b> · 각 중앙은행 결정일 기준 변경 이력을 파일에 내장한 값입니다(자동 갱신 아님). 1일 조회는 계단형 지표 특성상 제외했습니다.</div>
+          <div><b>표기 유의</b> · 미국은 목표범위(상·하한), 일본은 유도 목표 대표치, 유로존은 결정일 기준(시행일과 수일 차이 가능)입니다.</div>
+          <div><b>원자료</b> · <a href="https://www.federalreserve.gov/monetarypolicy.htm" target="_blank" rel="noopener">Fed</a> · <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/key_ecb_interest_rates/html/index.en.html" target="_blank" rel="noopener">ECB</a> · <a href="https://www.bankofengland.co.uk/boeapps/database/Bank-Rate.asp" target="_blank" rel="noopener">BoE</a> · <a href="https://www.boj.or.jp/en/" target="_blank" rel="noopener">BoJ</a> · <a href="https://tradingeconomics.com/china/interest-rate" target="_blank" rel="noopener">PBoC(집계)</a> · <a href="https://www.bok.or.kr/portal/singl/baseRate/list.do?dataSeCd=01&menuNo=200643" target="_blank" rel="noopener">한국은행</a></div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ 02 환율 ══════════ -->
+      <section id="secF" style="display:none">
+        <div class="kpis" id="kpisF"></div>
+        <div class="controls" id="rangesF">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn on" data-r="1y">1년</button>
+          <button class="rbtn" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0F" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1F" aria-label="종료일">
+            <button class="go" id="goF">적용</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleF">환율 추이</h2>
+          <div class="chart-wrap">
+            <svg class="big" id="chartF" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipF"></div>
+          </div>
+          <div class="legend" id="legF"></div>
+          <div class="note">ECB 기준환율은 영업일 기준 하루 1회(CET 16시경) 발표됩니다. 실시간 호가가 아니며 은행 고시환율과 다를 수 있습니다.</div>
+        </div>
+        <details><summary>최근 데이터 표 보기 (선택 구간 최근 30영업일)</summary>
+          <div style="max-height:300px;overflow:auto"><table id="tblF"></table></div>
+        </details>
+        <footer class="foot">
+          <div><b>데이터</b> · Frankfurter API(ECB 기준환율, 1999년~). API 키 없이 브라우저에서 직접 불러오며, 인터넷 연결이 필요합니다. 접속 실패 시 예비 서버로 자동 전환합니다.</div>
+          <div><b>교차환율</b> · 원화 환율은 ECB의 USD 기준 고시값에서 계산한 교차환율입니다. 엔화는 100엔당 원화로 표시하며, 비교 차트는 구간 시작일=100 지수로 그립니다.</div>
+          <div><b>원자료</b> · <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html" target="_blank" rel="noopener">ECB 기준환율</a> · <a href="https://frankfurter.dev" target="_blank" rel="noopener">Frankfurter</a></div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ 03 주가지수 ══════════ -->
+      <section id="secI" style="display:none">
+        <div class="kpis" id="kpisI"></div>
+        <div class="controls" id="rangesI">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn on" data-r="1y">1년</button>
+          <button class="rbtn" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0I" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1I" aria-label="종료일">
+            <button class="go" id="goI">적용</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleI">지수 추이</h2>
+          <div class="chart-wrap">
+            <svg class="big" id="chartI" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipI"></div>
+          </div>
+          <div class="legend" id="legI"></div>
+          <div class="note" id="noteI"></div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle">산업별 성과 · 선택 기간 수익률</h2>
+          <div style="display:flex;gap:6px;margin-bottom:10px">
+            <button class="rbtn on" id="mkKR">KOSPI 업종</button>
+            <button class="rbtn" id="mkKQ">KOSDAQ 업종</button>
+            <button class="rbtn" id="mkUS">미국 섹터</button>
+          </div>
+          <svg id="barsI" viewBox="0 0 820 100" style="width:100%;display:block"></svg>
+          <div class="note" id="secNoteI"></div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터 준비</b> · 이 탭은 수집 스크립트가 만든 data_indices.js 파일을 읽습니다. 대시보드와 같은 폴더에서 <b>python indices_collector.py</b>를 실행하면 파일이 생성·갱신됩니다(설치 1회: pip install pykrx yfinance pandas).</div>
+          <div><b>갱신 주기</b> · 스크립트 실행 시점 기준 종가 데이터입니다(실시간 아님). 매일 1회 실행을 권장하며 Windows 작업 스케줄러로 자동화할 수 있습니다.</div>
+          <div><b>원자료</b> · 국내: KRX(pykrx) · 해외: Yahoo Finance(yfinance). 각 제공처 약관에 따라 개인 분석 용도로 사용하십시오.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ 04 산업별 주가지수 ══════════ -->
+      <section id="secS" style="display:none">
+        <div class="controls">
+          <button class="rbtn on" id="gKR">KOSPI 업종</button>
+          <button class="rbtn" id="gKQ">KOSDAQ 업종</button>
+          <button class="rbtn" id="gUS">미국 섹터</button>
+        </div>
+        <div class="controls" id="chipsS"></div>
+        <div class="controls" id="rangesS">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn on" data-r="1y">1년</button>
+          <button class="rbtn" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0S" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1S" aria-label="종료일">
+            <button class="go" id="goS">적용</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleS">산업별 지수 비교</h2>
+          <div class="chart-wrap">
+            <svg class="big" id="chartS" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipS"></div>
+          </div>
+          <div class="legend" id="legS"></div>
+          <div class="note" id="noteS"></div>
+        </div>
+        <footer class="foot">
+          <div><b>사용법</b> · 상단에서 시장(KOSPI 업종/KOSDAQ 업종/미국 섹터)을 고르고, 업종 버튼으로 개별 지수를 보거나 '전체 비교'로 구간 시작=100 지수 비교를 봅니다.</div>
+          <div><b>데이터</b> · 03 탭과 동일한 data_indices.js 를 사용합니다(수집 스크립트 v3부터 KOSDAQ 업종 포함). 미국 섹터는 SPDR 섹터 ETF 종가 기준입니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+    </div>
+    <aside class="band" id="band" style="background:var(--green)" aria-hidden="true"><span id="bandTxt">MACRO INDEX DASHBOARD</span></aside>
+  </div>
+</div>
+
+<script src="data_indices.js"></script>
+<script>
+"use strict";
+// ══════════ 공통 ══════════
+const DAY=86400000;
+const fmtD=t=>{const d=new Date(t);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+
+// ══════════ 탭 전환 ══════════
+const secR=document.getElementById("secR"),secF=document.getElementById("secF");
+const navR=document.getElementById("navR"),navF=document.getElementById("navF");
+let fxInited=false;
+navR.onclick=()=>{secR.style.display="";secF.style.display="none";navR.classList.add("on");navF.classList.remove("on");
+  document.getElementById("stamp").textContent="01 기준금리 · 확인일 2026-07-07 · 내장 데이터";
+  const b=document.getElementById("band");b.style.background="var(--green)";document.getElementById("bandTxt").textContent="MACRO INDEX DASHBOARD";};
+navF.onclick=()=>{secR.style.display="none";secF.style.display="";navF.classList.add("on");navR.classList.remove("on");
+  document.getElementById("stamp").textContent="02 환율 · ECB 일별 기준환율";
+  const b=document.getElementById("band");b.style.background="var(--navy)";document.getElementById("bandTxt").textContent="FX RATES DASHBOARD";
+  if(!fxInited){fxInited=true;FX.init();} };
+
+// ══════════ 01 기준금리 (내장 데이터) ══════════
+const RATES=(()=>{
+const DATA = {
+  US:{country:"미국",bank:"Fed",name:"연방기금 목표범위",dir:"hold",dirLabel:"동결",note:"2026-06-17 · 4연속 동결 · 다음 회의 2026-07-29",nowText:"3.50–3.75%",color:"#E8862E",
+    series:[
+      {label:"목표 상한",color:"#E8862E",pts:[["2008-12-16",.25],["2015-12-17",.50],["2016-12-15",.75],["2017-03-16",1.00],["2017-06-15",1.25],["2017-12-14",1.50],["2018-03-22",1.75],["2018-06-14",2.00],["2018-09-27",2.25],["2018-12-20",2.50],["2019-08-01",2.25],["2019-09-19",2.00],["2019-10-31",1.75],["2020-03-03",1.25],["2020-03-16",.25],["2022-03-17",.50],["2022-05-05",1.00],["2022-06-16",1.75],["2022-07-28",2.50],["2022-09-22",3.25],["2022-11-03",4.00],["2022-12-15",4.50],["2023-02-02",4.75],["2023-03-23",5.00],["2023-05-04",5.25],["2023-07-27",5.50],["2024-09-19",5.00],["2024-11-08",4.75],["2024-12-19",4.50],["2025-09-17",4.25],["2025-10-29",4.00],["2025-12-10",3.75]]},
+      {label:"목표 하한",color:"#17694F",pts:[["2008-12-16",0],["2015-12-17",.25],["2016-12-15",.50],["2017-03-16",.75],["2017-06-15",1.00],["2017-12-14",1.25],["2018-03-22",1.50],["2018-06-14",1.75],["2018-09-27",2.00],["2018-12-20",2.25],["2019-08-01",2.00],["2019-09-19",1.75],["2019-10-31",1.50],["2020-03-03",1.00],["2020-03-16",0],["2022-03-17",.25],["2022-05-05",.75],["2022-06-16",1.50],["2022-07-28",2.25],["2022-09-22",3.00],["2022-11-03",3.75],["2022-12-15",4.25],["2023-02-02",4.50],["2023-03-23",4.75],["2023-05-04",5.00],["2023-07-27",5.25],["2024-09-19",4.75],["2024-11-08",4.50],["2024-12-19",4.25],["2025-09-17",4.00],["2025-10-29",3.75],["2025-12-10",3.50]]}]},
+  EA:{country:"유로존",bank:"ECB",name:"예금 facility 금리",dir:"up",dirLabel:"인상",note:"2026-06 · +25bp(2023년 이후 첫 인상)",nowText:"2.25%",color:"#2F4B7C",
+    series:[{label:"예금금리",color:"#2F4B7C",pts:[["2012-07-11",0],["2014-06-11",-.10],["2014-09-10",-.20],["2015-12-09",-.30],["2016-03-16",-.40],["2019-09-18",-.50],["2022-07-27",0],["2022-09-14",.75],["2022-11-02",1.50],["2022-12-21",2.00],["2023-02-08",2.50],["2023-03-22",3.00],["2023-05-10",3.25],["2023-06-21",3.50],["2023-08-02",3.75],["2023-09-20",4.00],["2024-06-12",3.75],["2024-09-18",3.50],["2024-10-23",3.25],["2024-12-18",3.00],["2025-02-05",2.75],["2025-03-12",2.50],["2025-04-23",2.25],["2025-06-11",2.00],["2026-06-17",2.25]]}]},
+  GB:{country:"영국",bank:"BoE",name:"Bank Rate",dir:"hold",dirLabel:"동결",note:"2026-06-18 · 7–2 동결 · 다음 회의 2026-07-30",nowText:"3.75%",color:"#3D8A8C",
+    series:[{label:"Bank Rate",color:"#3D8A8C",pts:[["2009-03-05",.50],["2016-08-04",.25],["2017-11-02",.50],["2018-08-02",.75],["2020-03-11",.25],["2020-03-19",.10],["2021-12-16",.25],["2022-02-03",.50],["2022-03-17",.75],["2022-05-05",1.00],["2022-06-16",1.25],["2022-08-04",1.75],["2022-09-22",2.25],["2022-11-03",3.00],["2022-12-15",3.50],["2023-02-02",4.00],["2023-03-23",4.25],["2023-05-11",4.50],["2023-06-22",5.00],["2023-08-03",5.25],["2024-08-01",5.00],["2024-11-07",4.75],["2025-02-06",4.50],["2025-05-08",4.25],["2025-08-07",4.00],["2025-12-18",3.75]]}]},
+  JP:{country:"일본",bank:"BoJ",name:"무담보 콜금리 유도 목표",dir:"up",dirLabel:"인상",note:"2026-06-16 · 0.75%→약 1.0% · 31년 만의 최고",nowText:"약 1.0%",color:"#A63D40",
+    series:[{label:"정책금리(대표치)",color:"#A63D40",pts:[["2010-10-05",.10],["2016-01-29",-.10],["2024-03-19",.10],["2024-07-31",.25],["2025-01-24",.50],["2025-12-19",.75],["2026-06-16",1.00]]}]},
+  CN:{country:"중국",bank:"PBoC",name:"LPR(대출우대금리)",dir:"hold",dirLabel:"동결",note:"13개월 연속 동결 · LPR 제도는 2019-08 개편",nowText:"3.0 / 3.5%",color:"#C9A227",
+    series:[
+      {label:"LPR 1년",color:"#C9A227",pts:[["2019-08-20",4.25],["2019-09-20",4.20],["2019-11-20",4.15],["2020-02-20",4.05],["2020-04-20",3.85],["2021-12-20",3.80],["2022-01-20",3.70],["2022-08-22",3.65],["2023-06-20",3.55],["2023-08-21",3.45],["2024-07-22",3.35],["2024-10-21",3.10],["2025-05-20",3.00]]},
+      {label:"LPR 5년",color:"#8A6F1B",pts:[["2019-08-20",4.85],["2019-11-20",4.80],["2020-02-20",4.75],["2020-04-20",4.65],["2022-01-20",4.60],["2022-05-20",4.45],["2022-08-22",4.30],["2023-06-20",4.20],["2024-02-20",3.95],["2024-07-22",3.85],["2024-10-21",3.60],["2025-05-20",3.50]]}]},
+  KR:{country:"한국",bank:"한국은행",name:"한국은행 기준금리",dir:"hold",dirLabel:"동결",note:"8연속 동결 · 다음 회의 2026-07-16",nowText:"2.50%",color:"#17694F",
+    series:[{label:"기준금리",color:"#17694F",pts:[["2008-03-07",5.00],["2008-08-07",5.25],["2008-10-09",5.00],["2008-10-27",4.25],["2008-11-07",4.00],["2008-12-11",3.00],["2009-01-09",2.50],["2009-02-12",2.00],["2010-07-09",2.25],["2010-11-16",2.50],["2011-01-13",2.75],["2011-03-10",3.00],["2011-06-10",3.25],["2012-07-12",3.00],["2012-10-11",2.75],["2013-05-09",2.50],["2014-08-14",2.25],["2014-10-15",2.00],["2015-03-12",1.75],["2015-06-11",1.50],["2016-06-09",1.25],["2017-11-30",1.50],["2018-11-30",1.75],["2019-07-18",1.50],["2019-10-16",1.25],["2020-03-16",.75],["2020-05-28",.50],["2021-08-26",.75],["2021-11-25",1.00],["2022-01-14",1.25],["2022-04-14",1.50],["2022-05-26",1.75],["2022-07-13",2.25],["2022-08-25",2.50],["2022-10-12",3.00],["2022-11-24",3.25],["2023-01-13",3.50],["2024-10-11",3.25],["2024-11-28",3.00],["2025-02-25",2.75],["2025-05-29",2.50]]}]}
+};
+function spreadOf(a,b){
+  const dates=[...new Set([...a.map(p=>p[0]),...b.map(p=>p[0])])].sort();
+  const at=(s,t)=>{let v=null;for(const p of s){if(p[0]<=t)v=p[1];else break;}return v;};
+  return dates.map(d=>{const x=at(a,d),y=at(b,d);return(x==null||y==null)?null:[d,+(x-y).toFixed(2)];}).filter(Boolean);
+}
+const KRUS=spreadOf(DATA.KR.series[0].pts,DATA.US.series[0].pts);
+DATA.ALL={country:"비교",bank:"6개국",name:"정책금리 비교",dir:"hold",dirLabel:"통합",color:"#1E2A33",
+  note:"점선은 한·미 금리차(한국 − 미국 상한)이며 음수는 한국이 낮은 구간입니다.",
+  nowText:(KRUS[KRUS.length-1][1]>0?"+":"")+KRUS[KRUS.length-1][1].toFixed(2)+"%p",
+  series:[
+    {label:"한국",color:"#17694F",pts:DATA.KR.series[0].pts},
+    {label:"미국(상한)",color:"#E8862E",pts:DATA.US.series[0].pts},
+    {label:"유로존",color:"#2F4B7C",pts:DATA.EA.series[0].pts},
+    {label:"영국",color:"#3D8A8C",pts:DATA.GB.series[0].pts},
+    {label:"중국 LPR 1년",color:"#C9A227",pts:DATA.CN.series[0].pts},
+    {label:"일본",color:"#A63D40",pts:DATA.JP.series[0].pts},
+    {label:"한·미 금리차",color:"#808080",dash:"5 4",pts:KRUS}]};
+const ORDER=["ALL","KR","US","EA","GB","CN","JP"];
+const TODAY=new Date("2026-07-07T00:00:00").getTime();
+let curKey="ALL",curRange="3y",cT0=null,cT1=null;
+
+const kpisEl=document.getElementById("kpisR");
+ORDER.forEach(k=>{
+  const D=DATA[k],b=document.createElement("button");
+  b.className="kpi"+(k===curKey?" on":"");
+  b.innerHTML='<span class="bar" style="background:'+D.color+'"></span><div class="c">'+D.country+' <span class="chg '+D.dir+'">'+D.dirLabel+'</span></div><div class="v">'+D.nowText+'</div><div class="s">'+(k==="ALL"?"한·미 금리차":D.bank)+'</div>';
+  b.onclick=()=>{curKey=k;kpisEl.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};
+  kpisEl.appendChild(b);
+});
+document.querySelectorAll("#rangesR .rbtn").forEach(b=>{
+  b.onclick=()=>{curRange=b.dataset.r;cT0=cT1=null;
+    document.querySelectorAll("#rangesR .rbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};
+});
+document.getElementById("goR").onclick=()=>{
+  const d0=document.getElementById("d0R").value,d1=document.getElementById("d1R").value;
+  if(!d0||!d1)return alert("시작일과 종료일을 모두 지정하십시오.");
+  let t0=Date.parse(d0),t1=Date.parse(d1);
+  if(t0>t1){const t=t0;t0=t1;t1=t;}
+  cT0=t0;cT1=Math.min(t1,TODAY);
+  document.querySelectorAll("#rangesR .rbtn").forEach(x=>x.classList.remove("on"));
+  render();
+};
+function rangeWindow(){
+  if(cT0!=null)return[cT0,cT1];
+  const sp={"3m":91,"1y":365,"3y":3*365,"5y":5*365,"10y":10*365};
+  if(curRange==="all"){
+    const first=Math.min.apply(null,DATA[curKey].series.map(s=>Date.parse(s.pts[0][0])));
+    return[first,TODAY];
+  }
+  return[TODAY-sp[curRange]*DAY,TODAY];
+}
+function stepPoints(pts,t0,t1){
+  const P=pts.map(p=>[Date.parse(p[0]),p[1]]);
+  let sv=null;for(let i=0;i<P.length;i++){if(P[i][0]<=t0)sv=P[i][1];else break;}
+  const out=[];if(sv!=null)out.push([t0,sv]);
+  for(let i=0;i<P.length;i++)if(P[i][0]>t0&&P[i][0]<=t1)out.push(P[i]);
+  if(!out.length)return[];
+  out.push([t1,out[out.length-1][1]]);return out;
+}
+function valueAt(pts,t){let v=null;for(let i=0;i<pts.length;i++){if(Date.parse(pts[i][0])<=t)v=pts[i][1];else break;}return v;}
+
+function drawBars(){
+  const items=["US","GB","CN","KR","EA","JP"].map(k=>({n:DATA[k].country,v:DATA[k].series[0].pts[DATA[k].series[0].pts.length-1][1],c:DATA[k].color})).sort((a,b)=>b.v-a.v);
+  const W=260,rowH=44,PL=64,PR=40,H=items.length*rowH+10;
+  const maxV=Math.max.apply(null,items.map(i=>i.v));
+  let g="";
+  items.forEach((it,i)=>{
+    const y=i*rowH+14,w=(it.v/maxV)*(W-PL-PR);
+    g+='<text x="'+(PL-8)+'" y="'+(y+13)+'" text-anchor="end" fill="#6B7680" font-size="11" font-family="Arial,sans-serif">'+it.n+'</text>';
+    g+='<rect x="'+PL+'" y="'+y+'" width="'+w.toFixed(1)+'" height="18" rx="3" fill="'+it.c+'"/>';
+    g+='<text x="'+(PL+w+6)+'" y="'+(y+13)+'" fill="#1E2A33" font-size="11" font-weight="700" font-family="Arial,sans-serif">'+it.v.toFixed(2)+'</text>';
+  });
+  const bars=document.getElementById("barsR");
+  bars.setAttribute("viewBox","0 0 "+W+" "+H);
+  bars.innerHTML=g;
+}
+function drawChart(){
+  const D=DATA[curKey],rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const W=820,H=340,PL=52,PR=14,PT=14,PB=30;
+  const svg=document.getElementById("chartR");
+  const lines=D.series.map(s=>Object.assign({},s,{step:stepPoints(s.pts,t0,t1)})).filter(s=>s.step.length);
+  document.getElementById("titleR").textContent=(curKey==="ALL"?"주요국 금리 추이":D.country+" 금리 추이");
+  document.getElementById("noteR").textContent=D.note;
+  if(!lines.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="14">해당 기간에 데이터가 없습니다.</text>';document.getElementById("legR").innerHTML="";return;}
+  let vals=[];lines.forEach(s=>s.step.forEach(p=>vals.push(p[1])));
+  let lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+  const pad=(hi-lo)*.12||.4;lo-=pad;hi+=pad;
+  const X=t=>PL+(t-t0)/Math.max(1,(t1-t0))*(W-PL-PR);
+  const Y=v=>H-PB-(v-lo)/(hi-lo)*(H-PT-PB);
+  let g="";
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4,y=Y(v);
+    g+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#E7E4DA" stroke-width="1"/>';
+    g+='<text x="'+(PL-8)+'" y="'+(y+3.5)+'" text-anchor="end" fill="#98A1A9" font-size="11" font-family="Arial,sans-serif">'+v.toFixed(2)+'</text>';
+  }
+  for(let i=0;i<=4;i++){
+    const t=t0+(t1-t0)*i/4,x=X(t);
+    g+='<text x="'+x+'" y="'+(H-8)+'" text-anchor="'+(i===0?"start":i===4?"end":"middle")+'" fill="#98A1A9" font-size="11" font-family="Arial,sans-serif">'+fmtD(t)+'</text>';
+  }
+  if(lo<0&&hi>0){const y0=Y(0);g+='<line x1="'+PL+'" y1="'+y0+'" x2="'+(W-PR)+'" y2="'+y0+'" stroke="#C9C4B6" stroke-width="1.4"/>';}
+  lines.forEach(s=>{
+    let d="";
+    s.step.forEach((p,i)=>{
+      const x=X(p[0]).toFixed(1),y=Y(p[1]).toFixed(1);
+      if(i===0)d+="M"+x+" "+y;
+      else{const py=Y(s.step[i-1][1]).toFixed(1);d+=" L"+x+" "+py+" L"+x+" "+y;}
+    });
+    g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="'+(s.dash?1.8:2.4)+'"'+(s.dash?' stroke-dasharray="'+s.dash+'"':'')+' stroke-linejoin="round"/>';
+    const last=s.step[s.step.length-1];
+    g+='<circle cx="'+X(last[0]).toFixed(1)+'" cy="'+Y(last[1]).toFixed(1)+'" r="3.6" fill="'+s.color+'"/>';
+  });
+  g+='<line id="crossR" x1="0" x2="0" y1="'+PT+'" y2="'+(H-PB)+'" stroke="#17694F" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+  svg.innerHTML=g;
+  document.getElementById("legR").innerHTML=
+    lines.map(s=>'<span><i style="background:'+s.color+'"></i>'+s.label+' · '+s.step[s.step.length-1][1].toFixed(2)+(s.dash?"%p":"%")+'</span>').join("")
+    +'<span style="margin-left:auto;color:#98A1A9">'+fmtD(t0)+' ~ '+fmtD(t1)+'</span>';
+  const tip=document.getElementById("tipR"),card=svg.parentElement;
+  function onMove(ev){
+    const r=svg.getBoundingClientRect();
+    const cx=(ev.touches?ev.touches[0].clientX:ev.clientX);
+    const fx=(cx-r.left)/r.width*W;
+    const cross=svg.querySelector("#crossR");
+    if(fx<PL||fx>W-PR){tip.style.display="none";cross.style.display="none";return;}
+    const t=t0+(fx-PL)/(W-PL-PR)*(t1-t0);
+    let html='<div class="d">'+fmtD(t)+'</div>';
+    lines.forEach(s=>{const v=valueAt(s.pts,t);
+      html+='<div><span style="color:'+s.color+'">●</span> '+s.label+': <b>'+(v==null?"—":v.toFixed(2)+(s.dash?"%p":"%"))+'</b></div>';});
+    tip.innerHTML=html;tip.style.display="block";
+    const cr=card.getBoundingClientRect();
+    let left=cx-cr.left+14;if(left+tip.offsetWidth>cr.width-8)left=cx-cr.left-tip.offsetWidth-14;
+    tip.style.left=left+"px";
+    tip.style.top=((ev.touches?ev.touches[0].clientY:ev.clientY)-cr.top-10)+"px";
+    cross.style.display="block";cross.setAttribute("x1",fx);cross.setAttribute("x2",fx);
+  }
+  svg.onmousemove=onMove;svg.ontouchstart=onMove;svg.ontouchmove=onMove;
+  svg.onmouseleave=()=>{tip.style.display="none";const c=svg.querySelector("#crossR");if(c)c.style.display="none";};
+}
+function drawTable(){
+  const D=DATA[curKey];let rows=[];
+  D.series.forEach(s=>s.pts.forEach((p,i)=>{rows.push({d:p[0],label:s.label,v:p[1],prev:i>0?s.pts[i-1][1]:null,unit:s.dash?"%p":"%"});}));
+  rows.sort((a,b)=>b.d.localeCompare(a.d));
+  let html="<tr><th>결정일</th><th>구분</th><th>수준</th><th>변동</th></tr>";
+  rows.forEach(r=>{
+    const diff=r.prev==null?null:+(r.v-r.prev).toFixed(2);
+    const cls=diff==null?"":diff>0?"up":diff<0?"down":"";
+    const dtxt=diff==null?"—":(diff>0?"+":"")+diff.toFixed(2)+"%p";
+    html+='<tr><td class="v">'+r.d+'</td><td>'+r.label+'</td><td class="v">'+r.v.toFixed(2)+r.unit+'</td><td class="v '+cls+'">'+dtxt+'</td></tr>';
+  });
+  document.getElementById("tblR").innerHTML=html;
+}
+function render(){drawChart();drawTable();}
+drawBars();render();
+return{};
+})();
+
+// ══════════ 02 환율 (Frankfurter API, 원화 기준 4개 통화 + 지수 비교) ══════════
+const FX=(()=>{
+const PAIRS={
+  USDKRW:{label:"원/달러",code:"USD/KRW",color:"#17694F",dp:1,calc:r=>r.KRW},
+  EURKRW:{label:"원/유로",code:"EUR/KRW",color:"#2F4B7C",dp:1,calc:r=>r.KRW/r.EUR},
+  GBPKRW:{label:"원/파운드",code:"GBP/KRW",color:"#3D8A8C",dp:1,calc:r=>r.KRW/r.GBP},
+  CNYKRW:{label:"원/위안",code:"CNY/KRW",color:"#C9A227",dp:1,calc:r=>r.KRW/r.CNY},
+  JPYKRW:{label:"원/엔(100)",code:"JPY100/KRW",color:"#A63D40",dp:1,calc:r=>r.KRW/r.JPY*100}
+};
+const SYMS="KRW,EUR,GBP,CNY,JPY";
+const HOSTS=["https://api.frankfurter.dev/v1/","https://api.frankfurter.app/v1/"];
+const fmtV=(v,dp)=>v.toLocaleString("en-US",{minimumFractionDigits:dp,maximumFractionDigits:dp});
+let curPair="ALL",curRange="1y",cT0=null,cT1=null;
+const cache={};
+
+async function fetchRange(d0,d1){
+  const key=d0+"_"+d1;
+  if(cache[key])return cache[key];
+  let err=null;
+  for(const host of HOSTS){
+    try{
+      const res=await fetch(host+d0+".."+d1+"?base=USD&symbols="+SYMS,{mode:"cors"});
+      if(!res.ok)throw new Error("HTTP "+res.status+" ("+host+")");
+      const j=await res.json();
+      const dates=Object.keys(j.rates).sort();
+      if(!dates.length)throw new Error("빈 응답 ("+host+")");
+      const out={dates,rates:j.rates};
+      cache[key]=out;
+      return out;
+    }catch(e){err=e;}
+  }
+  throw err;
+}
+function rangeWindow(){
+  const now=Date.now();
+  if(cT0!=null)return[cT0,Math.min(cT1,now)];
+  const sp={"1m":31,"3m":92,"1y":366,"3y":3*366,"5y":5*366,"10y":10*366};
+  if(curRange==="all")return[Date.parse("1999-01-04"),now];
+  return[now-sp[curRange]*DAY,now];
+}
+const kpisEl=document.getElementById("kpisF");
+function buildCards(dates,rates){
+  kpisEl.innerHTML="";
+  const dl=dates[dates.length-1],dp=dates[dates.length-2];
+  // 비교 카드
+  const bAll=document.createElement("button");
+  bAll.className="kpi"+(curPair==="ALL"?" on":"");
+  bAll.innerHTML='<span class="bar" style="background:#1E2A33"></span><div class="c">비교 <span class="chg hold">통합</span></div><div class="v">4개 통화</div><div class="s">구간 시작=100 지수</div>';
+  bAll.onclick=()=>{curPair="ALL";kpisEl.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));bAll.classList.add("on");drawChart();};
+  kpisEl.appendChild(bAll);
+  Object.keys(PAIRS).forEach(k=>{
+    const P=PAIRS[k];
+    const v=P.calc(rates[dl]),pv=dp?P.calc(rates[dp]):null;
+    const chg=pv?((v-pv)/pv*100):null;
+    const cls=chg==null?"flat":chg>0.001?"up":chg<-0.001?"down":"flat";
+    const arrow=chg==null?"":chg>0.001?"▲":chg<-0.001?"▼":"—";
+    const b=document.createElement("button");
+    b.className="kpi"+(k===curPair?" on":"");
+    b.innerHTML='<span class="bar" style="background:'+P.color+'"></span><div class="c">'+P.label+'</div><div class="v">'+fmtV(v,P.dp)+'</div><div class="s '+cls+'">'+arrow+' '+(chg==null?"—":Math.abs(chg).toFixed(2)+"%")+' <span style="color:var(--faint)">전일비 · '+P.code+'</span></div>';
+    b.onclick=()=>{curPair=k;kpisEl.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));b.classList.add("on");drawChart();};
+    kpisEl.appendChild(b);
+  });
+  document.getElementById("stamp").textContent="02 환율 · ECB 일별 기준환율 · 최신 고시일 "+dl;
+}
+function showError(el,detail){
+  el.innerHTML='<div class="panel" style="grid-column:1/-1;margin:0"><div class="status">환율 데이터를 불러오지 못했습니다.<br>'
+    +'<span style="color:#A63D40">오류: '+detail+'</span><br>'
+    +'점검 순서: ① 인터넷 연결 ② 광고차단 확장프로그램의 api.frankfurter.dev 차단 여부 ③ 회사망 방화벽<br><br>'
+    +'<button class="retry" onclick="FX.retry()">다시 시도</button></div></div>';
+}
+document.querySelectorAll("#rangesF .rbtn").forEach(b=>{
+  b.onclick=()=>{curRange=b.dataset.r;cT0=cT1=null;
+    document.querySelectorAll("#rangesF .rbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");drawChart();};
+});
+document.getElementById("goF").onclick=()=>{
+  const d0=document.getElementById("d0F").value,d1=document.getElementById("d1F").value;
+  if(!d0||!d1)return alert("시작일과 종료일을 모두 지정하십시오.");
+  let t0=Date.parse(d0),t1=Date.parse(d1);
+  if(t0>t1){const t=t0;t0=t1;t1=t;}
+  cT0=t0;cT1=t1;
+  document.querySelectorAll("#rangesF .rbtn").forEach(x=>x.classList.remove("on"));
+  drawChart();
+};
+
+const W=820,H=340,PT=14,PB=30;
+function axes(g,lo,hi,rt0,rt1,PL,PR,X,Y,dp){
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4,y=Y(v);
+    g.s+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#E7E4DA" stroke-width="1"/>';
+    g.s+='<text x="'+(PL-8)+'" y="'+(y+3.5)+'" text-anchor="end" fill="#98A1A9" font-size="11" font-family="Arial,sans-serif">'+fmtV(v,dp)+'</text>';
+  }
+  for(let i=0;i<=4;i++){
+    const t=rt0+(rt1-rt0)*i/4,x=X(t);
+    g.s+='<text x="'+x+'" y="'+(H-8)+'" text-anchor="'+(i===0?"start":i===4?"end":"middle")+'" fill="#98A1A9" font-size="11" font-family="Arial,sans-serif">'+fmtD(t)+'</text>';
+  }
+}
+function attachTip(svg,pts,rows,PL,PR,X,crossId){
+  const tip=document.getElementById("tipF"),card=svg.parentElement;
+  function onMove(ev){
+    const r=svg.getBoundingClientRect();
+    const cx=(ev.touches?ev.touches[0].clientX:ev.clientX);
+    const fx=(cx-r.left)/r.width*W;
+    const cross=svg.querySelector("#"+crossId);
+    if(fx<PL||fx>W-PR){tip.style.display="none";cross.style.display="none";return;}
+    const t=pts[0][0]+(fx-PL)/(W-PL-PR)*(pts[pts.length-1][0]-pts[0][0]);
+    let bi=0,bd=Infinity;
+    pts.forEach((p,i)=>{const dd=Math.abs(p[0]-t);if(dd<bd){bd=dd;bi=i;}});
+    tip.innerHTML=rows(bi);
+    tip.style.display="block";
+    const cr=card.getBoundingClientRect();
+    let left=cx-cr.left+14;if(left+tip.offsetWidth>cr.width-8)left=cx-cr.left-tip.offsetWidth-14;
+    tip.style.left=left+"px";
+    tip.style.top=((ev.touches?ev.touches[0].clientY:ev.clientY)-cr.top-10)+"px";
+    const xx=X(pts[bi][0]);cross.style.display="block";cross.setAttribute("x1",xx);cross.setAttribute("x2",xx);
+  }
+  svg.onmousemove=onMove;svg.ontouchstart=onMove;svg.ontouchmove=onMove;
+  svg.onmouseleave=()=>{tip.style.display="none";const c=svg.querySelector("#"+crossId);if(c)c.style.display="none";};
+}
+
+async function drawChart(){
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const svg=document.getElementById("chartF");
+  document.getElementById("titleF").textContent=(curPair==="ALL"?"원화 환율 비교 (구간 시작=100)":PAIRS[curPair].label+" 추이");
+  svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13" font-family="Arial,sans-serif">불러오는 중…</text>';
+  document.getElementById("legF").innerHTML="";
+  let data;
+  try{data=await fetchRange(fmtD(t0),fmtD(t1));}
+  catch(e){
+    svg.innerHTML='<text x="410" y="150" text-anchor="middle" fill="#A63D40" font-size="13" font-family="Arial,sans-serif">데이터를 불러오지 못했습니다.</text>'
+      +'<text x="410" y="175" text-anchor="middle" fill="#98A1A9" font-size="12">오류: '+(e&&e.message?e.message:"알 수 없음")+'</text>'
+      +'<text x="410" y="200" text-anchor="middle" fill="#98A1A9" font-size="12">인터넷 연결·광고차단·방화벽을 확인 후 기간을 다시 선택하십시오.</text>';
+    return;
+  }
+  if(curPair==="ALL")renderCompare(data,svg);else renderSingle(data,svg);
+  drawTable(data);
+}
+
+function sampleIdx(n){
+  let idxs=[];for(let i=0;i<n;i++)idxs.push(i);
+  if(n>1200){const st=Math.ceil(n/1200);idxs=idxs.filter((i)=>i%st===0||i===n-1);}
+  return idxs;
+}
+
+function renderSingle(data,svg){
+  const P=PAIRS[curPair];
+  let pts=data.dates.map(d=>[Date.parse(d),P.calc(data.rates[d])]).filter(p=>isFinite(p[1]));
+  if(!pts.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">해당 기간에 데이터가 없습니다.</text>';return;}
+  if(pts.length>1200){const st=Math.ceil(pts.length/1200);pts=pts.filter((_,i)=>i%st===0||i===pts.length-1);}
+  const PL=64,PR=14;
+  let lo=Math.min.apply(null,pts.map(p=>p[1])),hi=Math.max.apply(null,pts.map(p=>p[1]));
+  const pad=(hi-lo)*.08||lo*.01;lo-=pad;hi+=pad;
+  const rt0=pts[0][0],rt1=pts[pts.length-1][0];
+  const X=t=>PL+(t-rt0)/Math.max(1,(rt1-rt0))*(W-PL-PR);
+  const Y=v=>H-PB-(v-lo)/(hi-lo)*(H-PT-PB);
+  const g={s:""};
+  axes(g,lo,hi,rt0,rt1,PL,PR,X,Y,P.dp);
+  let d="";
+  pts.forEach((p,i)=>{d+=(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)+" ";});
+  g.s+='<path d="'+d+' L'+X(rt1).toFixed(1)+' '+(H-PB)+' L'+PL+' '+(H-PB)+' Z" fill="'+P.color+'" opacity=".07"/>';
+  g.s+='<path d="'+d+'" fill="none" stroke="'+P.color+'" stroke-width="2" stroke-linejoin="round"/>';
+  const last=pts[pts.length-1];
+  g.s+='<circle cx="'+X(last[0]).toFixed(1)+'" cy="'+Y(last[1]).toFixed(1)+'" r="3.6" fill="'+P.color+'"/>';
+  g.s+='<line id="crossF" x1="0" x2="0" y1="'+PT+'" y2="'+(H-PB)+'" stroke="'+P.color+'" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+  svg.innerHTML=g.s;
+  const first=pts[0][1],chg=(last[1]-first)/first*100;
+  document.getElementById("legF").innerHTML=
+    '<span><i style="background:'+P.color+'"></i>'+P.label+' ('+P.code+') · 최근 '+fmtV(last[1],P.dp)+'</span>'
+    +'<span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'
+    +'<span style="margin-left:auto;color:#98A1A9">'+fmtD(rt0)+' ~ '+fmtD(rt1)+' · '+pts.length+'개 관측치</span>';
+  attachTip(svg,pts,bi=>'<div class="d">'+fmtD(pts[bi][0])+'</div><div><span style="color:'+P.color+'">●</span> '+P.label+': <b>'+fmtV(pts[bi][1],P.dp)+'</b></div>',PL,PR,X,"crossF");
+}
+
+function renderCompare(data,svg){
+  const keys=Object.keys(PAIRS);
+  // 모든 통화 값이 존재하는 날짜만 사용(초기 연도 일부 통화 미고시 대응)
+  const dates=data.dates.filter(d=>{const r=data.rates[d];return keys.every(k=>isFinite(PAIRS[k].calc(r)));});
+  const trimmed=data.dates.length&&dates.length&&dates[0]!==data.dates[0];
+  if(dates.length<2){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">모든 통화가 함께 고시된 구간이 없습니다.</text>';return;}
+  const idxs=sampleIdx(dates.length);
+  const times=idxs.map(i=>Date.parse(dates[i]));
+  const series=keys.map(k=>{
+    const P=PAIRS[k];
+    const actual=idxs.map(i=>P.calc(data.rates[dates[i]]));
+    const base=actual[0];
+    return{P,actual,idx:actual.map(v=>v/base*100)};
+  });
+  const PL=56,PR=14;
+  let vals=[];series.forEach(s=>s.idx.forEach(v=>vals.push(v)));
+  let lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+  const pad=(hi-lo)*.08||1;lo-=pad;hi+=pad;
+  const rt0=times[0],rt1=times[times.length-1];
+  const X=t=>PL+(t-rt0)/Math.max(1,(rt1-rt0))*(W-PL-PR);
+  const Y=v=>H-PB-(v-lo)/(hi-lo)*(H-PT-PB);
+  const g={s:""};
+  axes(g,lo,hi,rt0,rt1,PL,PR,X,Y,1);
+  // 기준선 100
+  if(lo<100&&hi>100){const y0=Y(100);g.s+='<line x1="'+PL+'" y1="'+y0+'" x2="'+(W-PR)+'" y2="'+y0+'" stroke="#C9C4B6" stroke-width="1.4" stroke-dasharray="6 4"/>';}
+  series.forEach(s=>{
+    let d="";
+    s.idx.forEach((v,i)=>{d+=(i?"L":"M")+X(times[i]).toFixed(1)+" "+Y(v).toFixed(1)+" ";});
+    g.s+='<path d="'+d+'" fill="none" stroke="'+s.P.color+'" stroke-width="2" stroke-linejoin="round"/>';
+    g.s+='<circle cx="'+X(times[times.length-1]).toFixed(1)+'" cy="'+Y(s.idx[s.idx.length-1]).toFixed(1)+'" r="3.4" fill="'+s.P.color+'"/>';
+  });
+  g.s+='<line id="crossF" x1="0" x2="0" y1="'+PT+'" y2="'+(H-PB)+'" stroke="#1E2A33" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+  svg.innerHTML=g.s;
+  document.getElementById("legF").innerHTML=
+    series.map(s=>{
+      const chg=s.idx[s.idx.length-1]-100;
+      return '<span><i style="background:'+s.P.color+'"></i>'+s.P.label+' · '+fmtV(s.actual[s.actual.length-1],s.P.dp)+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(2)+'%)</span></span>';
+    }).join("")
+    +'<span style="margin-left:auto;color:#98A1A9">'+fmtD(rt0)+' ~ '+fmtD(rt1)+' · 지수 기준'+(trimmed?' · 전 통화 공통 고시 시작('+dates[0]+')부터 표시':'')+'</span>';
+  const pts=times.map(t=>[t,0]);
+  attachTip(svg,pts,bi=>{
+    let html='<div class="d">'+fmtD(times[bi])+'</div>';
+    series.forEach(s=>{
+      html+='<div><span style="color:'+s.P.color+'">●</span> '+s.P.label+': <b>'+fmtV(s.actual[bi],s.P.dp)+'</b> <span style="color:var(--faint)">('+s.idx[bi].toFixed(1)+')</span></div>';
+    });
+    return html;
+  },PL,PR,X,"crossF");
+}
+
+function drawTable(data){
+  const ds=data.dates.slice(-30).reverse();
+  if(curPair==="ALL"){
+    const keys=Object.keys(PAIRS);
+    let html="<tr><th>고시일</th>"+keys.map(k=>"<th>"+PAIRS[k].label+"</th>").join("")+"</tr>";
+    ds.forEach(d=>{
+      html+='<tr><td class="v">'+d+'</td>'+keys.map(k=>{const v=PAIRS[k].calc(data.rates[d]);return '<td class="v">'+(isFinite(v)?fmtV(v,PAIRS[k].dp):"—")+'</td>';}).join("")+'</tr>';
+    });
+    document.getElementById("tblF").innerHTML=html;
+    return;
+  }
+  const P=PAIRS[curPair];
+  let html="<tr><th>고시일</th><th>"+P.label+" ("+P.code+")</th><th>전일비</th></tr>";
+  ds.forEach((d,i)=>{
+    const v=P.calc(data.rates[d]);
+    const pd=ds[i+1];
+    const pv=pd?P.calc(data.rates[pd]):null;
+    const chg=pv?((v-pv)/pv*100):null;
+    const cls=chg==null?"":chg>0?"up":chg<0?"down":"";
+    html+='<tr><td class="v">'+d+'</td><td class="v">'+fmtV(v,P.dp)+'</td><td class="v '+cls+'">'+(chg==null?"—":(chg>0?"+":"")+chg.toFixed(2)+"%")+'</td></tr>';
+  });
+  document.getElementById("tblF").innerHTML=html;
+}
+async function init(){
+  kpisEl.innerHTML='<div class="panel" style="grid-column:1/-1;margin:0"><div class="status">환율 데이터를 불러오는 중…</div></div>';
+  try{
+    const end=new Date(),start=new Date(Date.now()-14*DAY);
+    const d=await fetchRange(fmtD(start),fmtD(end));
+    buildCards(d.dates,d.rates);
+  }catch(e){
+    showError(kpisEl,(e&&e.message?e.message:"알 수 없음"));
+  }
+  drawChart();
+}
+function retry(){Object.keys(cache).forEach(k=>delete cache[k]);init();}
+return{init,retry};
+})();
+
+// ══════════ 03 종합 주가지수 (data_indices.js 필요) ══════════
+const IDX=(()=>{
+const MAINS=[["KOSPI","#17694F"],["KOSDAQ","#3D8A8C"],["SPX","#E8862E"],["IXIC","#A63D40"],["N225","#6B4E9B"],["SSE","#C9A227"]];
+const GRP={KR:{g:"KR_SECTOR",n:"KOSPI 업종"},KQ:{g:"KQ_SECTOR",n:"KOSDAQ 업종"},US:{g:"US_SECTOR",n:"미국 섹터"}};
+const LINK={KOSPI:"KR",KOSDAQ:"KQ",SPX:"US",IXIC:"US"};
+let cur="ALL",curRange="1y",cT0=null,cT1=null,mk="KR",inited=false;
+const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
+const fmtN=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function rangeWindow(){
+  const now=Date.now();
+  if(cT0!=null)return[cT0,Math.min(cT1,now)];
+  const sp={"1m":31,"3m":92,"1y":366,"3y":3*366,"5y":5*366,"10y":10*366};
+  if(curRange==="all")return[Date.parse("1990-01-01"),now];
+  return[now-sp[curRange]*DAY,now];
+}
+function inWin(pts,t0,t1){return pts.filter(p=>{const t=Date.parse(p[0]);return t>=t0&&t<=t1;});}
+function setupMsg(){
+  document.getElementById("kpisI").innerHTML='<div class="panel" style="grid-column:1/-1;margin:0"><div class="status">지수 데이터 파일(data_indices.js)이 없습니다.<br>대시보드와 같은 폴더에서 <b>python indices_collector.py</b> 를 실행해 파일을 생성한 뒤 새로고침하십시오.</div></div>';
+  document.getElementById("chartI").innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">data_indices.js 파일을 준비해 주십시오.</text>';
+}
+function buildCards(){
+  const s=S(),el=document.getElementById("kpisI");el.innerHTML="";
+  const bAll=document.createElement("button");
+  bAll.className="kpi"+(cur==="ALL"?" on":"");
+  bAll.innerHTML='<span class="bar" style="background:#1E2A33"></span><div class="c">비교 <span class="chg hold">통합</span></div><div class="v">종합지수</div><div class="s">구간 시작=100 지수</div>';
+  bAll.onclick=()=>{cur="ALL";el.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));bAll.classList.add("on");draw();};
+  el.appendChild(bAll);
+  MAINS.forEach(m=>{
+    const k=m[0],col=m[1],d=s[k];
+    if(!d||!d.pts.length)return;
+    const pts=d.pts,v=pts[pts.length-1][1],pv=pts.length>1?pts[pts.length-2][1]:null;
+    const chg=pv?(v-pv)/pv*100:null;
+    const cls=chg==null?"flat":chg>0?"up":chg<0?"down":"flat";
+    const arrow=chg==null?"":chg>0?"▲":chg<0?"▼":"—";
+    const b=document.createElement("button");
+    b.className="kpi"+(k===cur?" on":"");
+    b.innerHTML='<span class="bar" style="background:'+col+'"></span><div class="c">'+d.label+'</div><div class="v">'+fmtN(v)+'</div><div class="s '+cls+'">'+arrow+' '+(chg==null?"—":Math.abs(chg).toFixed(2)+"%")+' <span style="color:var(--faint)">전일비</span></div>';
+    b.onclick=()=>{cur=k;el.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw();};
+    el.appendChild(b);
+  });
+}
+const W=820,H=340,PT=14,PB=30;
+function drawLines(svg,tipEl,crossId,list,dp,fmtA){
+  const PL=64,PR=14;
+  let vals=[];list.forEach(s=>s.pts.forEach(p=>vals.push(p[1])));
+  if(!vals.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">해당 기간에 데이터가 없습니다.</text>';return null;}
+  let lo=Math.min.apply(null,vals),hi=Math.max.apply(null,vals);
+  const pad=(hi-lo)*.08||1;lo-=pad;hi+=pad;
+  let rt0=Infinity,rt1=-Infinity;
+  list.forEach(s=>{rt0=Math.min(rt0,s.pts[0][0]);rt1=Math.max(rt1,s.pts[s.pts.length-1][0]);});
+  const X=t=>PL+(t-rt0)/Math.max(1,(rt1-rt0))*(W-PL-PR);
+  const Y=v=>H-PB-(v-lo)/(hi-lo)*(H-PT-PB);
+  let g="";
+  for(let i=0;i<=4;i++){
+    const v=lo+(hi-lo)*i/4,y=Y(v);
+    g+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#E7E4DA"/>';
+    g+='<text x="'+(PL-8)+'" y="'+(y+3.5)+'" text-anchor="end" fill="#98A1A9" font-size="11" font-family="Arial,sans-serif">'+v.toFixed(dp)+'</text>';
+  }
+  for(let i=0;i<=4;i++){
+    const t=rt0+(rt1-rt0)*i/4;
+    g+='<text x="'+X(t)+'" y="'+(H-8)+'" text-anchor="'+(i===0?"start":i===4?"end":"middle")+'" fill="#98A1A9" font-size="11" font-family="Arial,sans-serif">'+fmtD(t)+'</text>';
+  }
+  if(list.length>1&&lo<100&&hi>100){const y0=Y(100);g+='<line x1="'+PL+'" y1="'+y0+'" x2="'+(W-PR)+'" y2="'+y0+'" stroke="#C9C4B6" stroke-width="1.4" stroke-dasharray="6 4"/>';}
+  list.forEach(s=>{
+    let d="";
+    s.pts.forEach((p,i)=>{d+=(i?"L":"M")+X(p[0]).toFixed(1)+" "+Y(p[1]).toFixed(1)+" ";});
+    if(list.length===1){g+='<path d="'+d+' L'+X(s.pts[s.pts.length-1][0]).toFixed(1)+' '+(H-PB)+' L'+X(s.pts[0][0]).toFixed(1)+' '+(H-PB)+' Z" fill="'+s.color+'" opacity=".07"/>';}
+    g+='<path d="'+d+'" fill="none" stroke="'+s.color+'" stroke-width="2" stroke-linejoin="round"/>';
+    const lp=s.pts[s.pts.length-1];
+    g+='<circle cx="'+X(lp[0]).toFixed(1)+'" cy="'+Y(lp[1]).toFixed(1)+'" r="3.4" fill="'+s.color+'"/>';
+  });
+  g+='<line id="'+crossId+'" x1="0" x2="0" y1="'+PT+'" y2="'+(H-PB)+'" stroke="#1E2A33" stroke-width="1" stroke-dasharray="3 3" style="display:none"/>';
+  svg.innerHTML=g;
+  const tip=tipEl,card=svg.parentElement;
+  function nearest(pts,t){let bi=0,bd=Infinity;for(let i=0;i<pts.length;i++){const dd=Math.abs(pts[i][0]-t);if(dd<bd){bd=dd;bi=i;}}return bi;}
+  function onMove(ev){
+    const r=svg.getBoundingClientRect();
+    const cx=(ev.touches?ev.touches[0].clientX:ev.clientX);
+    const fx=(cx-r.left)/r.width*W;
+    const cross=svg.querySelector("#"+crossId);
+    if(fx<PL||fx>W-PR){tip.style.display="none";cross.style.display="none";return;}
+    const t=rt0+(fx-PL)/(W-PL-PR)*(rt1-rt0);
+    let html='<div class="d">'+fmtD(t)+'</div>';
+    list.forEach(s=>{
+      const bi=nearest(s.pts,t);
+      const av=s.actual?s.actual[bi]:null;
+      html+='<div><span style="color:'+s.color+'">●</span> '+s.label+': <b>'+(av!=null?fmtA(av):s.pts[bi][1].toFixed(dp))+'</b>'+(av!=null?' <span style="color:var(--faint)">('+s.pts[bi][1].toFixed(1)+')</span>':'')+'</div>';
+    });
+    tip.innerHTML=html;tip.style.display="block";
+    const cr=card.getBoundingClientRect();
+    let left=cx-cr.left+14;if(left+tip.offsetWidth>cr.width-8)left=cx-cr.left-tip.offsetWidth-14;
+    tip.style.left=left+"px";
+    tip.style.top=((ev.touches?ev.touches[0].clientY:ev.clientY)-cr.top-10)+"px";
+    cross.style.display="block";cross.setAttribute("x1",fx);cross.setAttribute("x2",fx);
+  }
+  svg.onmousemove=onMove;svg.ontouchstart=onMove;svg.ontouchmove=onMove;
+  svg.onmouseleave=()=>{tip.style.display="none";const c=svg.querySelector("#"+crossId);if(c)c.style.display="none";};
+  return{rt0,rt1};
+}
+window.IN_drawLines=drawLines;window.IN_inWin=inWin;
+function colorOf(k){
+  const m=MAINS.find(x=>x[0]===k);
+  if(m)return m[1];
+  return "#17694F";
+}
+function draw(){
+  const s=S();if(!s)return;
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const svg=document.getElementById("chartI"),tip=document.getElementById("tipI");
+  if(cur==="ALL"){
+    document.getElementById("titleI").textContent="종합지수 비교 (구간 시작=100)";
+    const list=[];
+    MAINS.forEach(m=>{
+      const k=m[0],d=s[k];if(!d)return;
+      const w=inWin(d.pts,t0,t1);if(w.length<2)return;
+      const base=w[0][1];
+      list.push({label:d.label,color:m[1],actual:w.map(p=>p[1]),pts:w.map(p=>[Date.parse(p[0]),p[1]/base*100])});
+    });
+    const r=drawLines(svg,tip,"crossI",list,1,fmtN);
+    document.getElementById("legI").innerHTML=list.map(s2=>{
+      const chg=s2.pts[s2.pts.length-1][1]-100;
+      return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(2)+'%)</span></span>';
+    }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+' · 지수 기준</span>':'');
+    document.getElementById("noteI").textContent="각 지수를 구간 시작일=100으로 재계산해 상대 성과를 비교합니다.";
+  }else{
+    const d=s[cur];
+    if(!d){cur="ALL";draw();return;}
+    document.getElementById("titleI").textContent=d.label+" 추이";
+    const w=inWin(d.pts,t0,t1).map(p=>[Date.parse(p[0]),p[1]]);
+    const col=colorOf(cur);
+    const r=drawLines(svg,tip,"crossI",w.length?[{label:d.label,color:col,pts:w}]:[],2,fmtN);
+    if(w.length){
+      const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
+      document.getElementById("legI").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+    }else document.getElementById("legI").innerHTML="";
+    document.getElementById("noteI").textContent="";
+  }
+  syncSector();
+}
+function syncSector(){
+  // 선택 지수에 대응하는 업종 그룹으로 자동 연동
+  let note="";
+  if(cur!=="ALL"){
+    const lk=LINK[cur];
+    if(lk){mk=lk;
+      if(cur==="IXIC")note="NASDAQ 전용 섹터지수는 없어 미국(S&P) 섹터 수익률을 참고로 표시합니다. ";
+    }else{
+      drawSectorMsg(S()&&S()[cur]?S()[cur].label+"의 산업별 지수는 현재 미수집입니다(니케이225·상해종합은 무료 소스 부재).":"");
+      setMkButtons();return;
+    }
+  }
+  setMkButtons();
+  drawSectors(note);
+}
+function setMkButtons(){
+  [["mkKR","KR"],["mkKQ","KQ"],["mkUS","US"]].forEach(p=>{
+    const el=document.getElementById(p[0]);
+    if(el)el.classList.toggle("on",mk===p[1]);
+  });
+}
+function drawSectorMsg(msg){
+  const svg=document.getElementById("barsI");
+  svg.setAttribute("viewBox","0 0 820 60");
+  svg.innerHTML='<text x="410" y="35" text-anchor="middle" fill="#98A1A9" font-size="12">'+msg+'</text>';
+  document.getElementById("secNoteI").textContent="";
+}
+function drawSectors(prefixNote){
+  const s=S();if(!s)return;
+  const grp=GRP[mk].g;
+  const exists=Object.keys(s).some(k=>s[k].group===grp);
+  if(!exists){
+    drawSectorMsg("수집 파일에 "+GRP[mk].n+" 데이터가 없습니다. indices_collector.py(v3) 재실행 후 Ctrl+F5(강력 새로고침) 하십시오.");
+    return;
+  }
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const rows=[];
+  Object.keys(s).forEach(k=>{
+    if(s[k].group!==grp)return;
+    const w=inWin(s[k].pts,t0,t1);
+    if(w.length<2)return;
+    rows.push({k,label:s[k].label,ret:(w[w.length-1][1]-w[0][1])/w[0][1]*100});
+  });
+  const svg=document.getElementById("barsI");
+  if(!rows.length){
+    drawSectorMsg(GRP[mk].n+" 데이터는 있으나 선택 기간에 유효 구간이 없습니다. 기간을 넓혀 보십시오.");
+    return;
+  }
+  rows.sort((a,b)=>b.ret-a.ret);
+  const rowH=30,PL=170,PR=70,Wb=820,Hb=rows.length*rowH+8;
+  const maxA=Math.max.apply(null,rows.map(r=>Math.abs(r.ret)))||1;
+  const x0=PL+(Wb-PL-PR)/2;
+  let g='<line x1="'+x0+'" y1="4" x2="'+x0+'" y2="'+(Hb-4)+'" stroke="#C9C4B6"/>';
+  rows.forEach((r,i)=>{
+    const y=i*rowH+6;
+    const w=Math.abs(r.ret)/maxA*((Wb-PL-PR)/2-4);
+    const pos=r.ret>=0;
+    const bx=pos?x0:x0-w;
+    const col=pos?"#17694F":"#2F4B7C";
+    g+='<text x="'+(PL-8)+'" y="'+(y+13)+'" text-anchor="end" fill="#6B7680" font-size="11" font-family="Arial,sans-serif">'+r.label+'</text>';
+    g+='<rect class="sbar" data-k="'+r.k+'" x="'+bx.toFixed(1)+'" y="'+y+'" width="'+Math.max(w,1).toFixed(1)+'" height="18" rx="3" fill="'+col+'" style="cursor:pointer"/>';
+    g+='<text x="'+(pos?x0+w+6:x0-w-6)+'" y="'+(y+13)+'" text-anchor="'+(pos?"start":"end")+'" fill="#1E2A33" font-size="11" font-weight="700" font-family="Arial,sans-serif">'+(r.ret>0?"+":"")+r.ret.toFixed(1)+'%</text>';
+  });
+  svg.setAttribute("viewBox","0 0 "+Wb+" "+Hb);
+  svg.innerHTML=g;
+  svg.querySelectorAll(".sbar").forEach(el=>{
+    el.onclick=()=>{
+      // 04 탭으로 이동해 해당 업종 상세 표시
+      SEC.open(mk,el.getAttribute("data-k"));
+    };
+  });
+  document.getElementById("secNoteI").textContent=(prefixNote||"")+GRP[mk].n+"의 선택 기간 '수익률'입니다(시가총액 가중 기여도 아님). 막대를 누르면 04 탭에서 상세 시계열이 열립니다.";
+}
+function wire(){
+  document.querySelectorAll("#rangesI .rbtn").forEach(b=>{
+    b.onclick=()=>{curRange=b.dataset.r;cT0=cT1=null;
+      document.querySelectorAll("#rangesI .rbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw();};
+  });
+  document.getElementById("goI").onclick=()=>{
+    const d0=document.getElementById("d0I").value,d1=document.getElementById("d1I").value;
+    if(!d0||!d1)return alert("시작일과 종료일을 모두 지정하십시오.");
+    let a=Date.parse(d0),b2=Date.parse(d1);
+    if(a>b2){const t=a;a=b2;b2=t;}
+    cT0=a;cT1=b2;
+    document.querySelectorAll("#rangesI .rbtn").forEach(x=>x.classList.remove("on"));
+    draw();
+  };
+  [["mkKR","KR"],["mkKQ","KQ"],["mkUS","US"]].forEach(p=>{
+    const el=document.getElementById(p[0]);
+    if(el)el.onclick=()=>{mk=p[1];setMkButtons();drawSectors("");};
+  });
+}
+function init(){
+  if(inited)return;inited=true;
+  wire();
+  if(!S()){setupMsg();return;}
+  buildCards();draw();
+}
+return{init};
+})();
+
+// ══════════ 04 산업별 주가지수 ══════════
+const SEC=(()=>{
+const GRP={KR:{g:"KR_SECTOR",n:"KOSPI 업종"},KQ:{g:"KQ_SECTOR",n:"KOSDAQ 업종"},US:{g:"US_SECTOR",n:"미국 섹터"}};
+const PAL=["#17694F","#2F4B7C","#3D8A8C","#C9A227","#A63D40","#E8862E","#6B4E9B","#8A6F1B","#5E6A72","#B4441B","#4E8F79"];
+let grp="KR",sel="ALL",curRange="1y",cT0=null,cT1=null,inited=false,pendingOpen=null;
+const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
+const fmtN=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function rangeWindow(){
+  const now=Date.now();
+  if(cT0!=null)return[cT0,Math.min(cT1,now)];
+  const sp={"1m":31,"3m":92,"1y":366,"3y":3*366,"5y":5*366,"10y":10*366};
+  if(curRange==="all")return[Date.parse("1990-01-01"),now];
+  return[now-sp[curRange]*DAY,now];
+}
+function keysOf(){
+  const s=S();if(!s)return[];
+  return Object.keys(s).filter(k=>s[k].group===GRP[grp].g);
+}
+function buildChips(){
+  const el=document.getElementById("chipsS");el.innerHTML="";
+  const ks=keysOf(),s=S();
+  const mk=(label,key)=>{
+    const b=document.createElement("button");
+    b.className="rbtn"+((sel===key)?" on":"");
+    b.textContent=label;
+    b.onclick=()=>{sel=key;buildChips();draw();};
+    el.appendChild(b);
+  };
+  mk("전체 비교","ALL");
+  ks.forEach(k=>mk(s[k].label,k));
+  if(!ks.length){
+    el.innerHTML='<span class="note" style="margin:0">수집 파일에 '+GRP[grp].n+' 데이터가 없습니다. indices_collector.py(v3) 재실행 후 Ctrl+F5 하십시오.</span>';
+  }
+}
+function draw(){
+  const s=S(),svg=document.getElementById("chartS"),tip=document.getElementById("tipS");
+  if(!s){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">data_indices.js 파일을 준비해 주십시오.</text>';return;}
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const ks=keysOf();
+  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+GRP[grp].n+' 데이터가 없습니다.</text>';document.getElementById("legS").innerHTML="";return;}
+  if(sel!=="ALL"&&ks.indexOf(sel)<0)sel="ALL";
+  if(sel==="ALL"){
+    document.getElementById("titleS").textContent=GRP[grp].n+" 비교 (구간 시작=100)";
+    const list=[];
+    ks.forEach((k,i)=>{
+      const w=window.IN_inWin(s[k].pts,t0,t1);if(w.length<2)return;
+      const base=w[0][1];
+      list.push({label:s[k].label,color:PAL[i%PAL.length],actual:w.map(p=>p[1]),pts:w.map(p=>[Date.parse(p[0]),p[1]/base*100])});
+    });
+    const r=window.IN_drawLines(svg,tip,"crossS",list,1,fmtN);
+    document.getElementById("legS").innerHTML=list.map(s2=>{
+      const chg=s2.pts[s2.pts.length-1][1]-100;
+      return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
+    }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+    document.getElementById("noteS").textContent="각 업종을 구간 시작일=100으로 재계산한 상대 성과입니다.";
+  }else{
+    const d=s[sel];
+    document.getElementById("titleS").textContent=d.label+" 추이";
+    const w=window.IN_inWin(d.pts,t0,t1).map(p=>[Date.parse(p[0]),p[1]]);
+    const col=PAL[Math.max(0,keysOf().indexOf(sel))%PAL.length];
+    const r=window.IN_drawLines(svg,tip,"crossS",w.length?[{label:d.label,color:col,pts:w}]:[],2,fmtN);
+    if(w.length){
+      const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
+      document.getElementById("legS").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+    }else document.getElementById("legS").innerHTML="";
+    document.getElementById("noteS").textContent=(grp==="US"?"미국 섹터는 SPDR 섹터 ETF 종가 기준입니다.":"");
+  }
+}
+function setGrpButtons(){
+  [["gKR","KR"],["gKQ","KQ"],["gUS","US"]].forEach(p=>{
+    document.getElementById(p[0]).classList.toggle("on",grp===p[1]);
+  });
+}
+function wire(){
+  [["gKR","KR"],["gKQ","KQ"],["gUS","US"]].forEach(p=>{
+    document.getElementById(p[0]).onclick=()=>{grp=p[1];sel="ALL";setGrpButtons();buildChips();draw();};
+  });
+  document.querySelectorAll("#rangesS .rbtn").forEach(b=>{
+    b.onclick=()=>{curRange=b.dataset.r;cT0=cT1=null;
+      document.querySelectorAll("#rangesS .rbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw();};
+  });
+  document.getElementById("goS").onclick=()=>{
+    const d0=document.getElementById("d0S").value,d1=document.getElementById("d1S").value;
+    if(!d0||!d1)return alert("시작일과 종료일을 모두 지정하십시오.");
+    let a=Date.parse(d0),b2=Date.parse(d1);
+    if(a>b2){const t=a;a=b2;b2=t;}
+    cT0=a;cT1=b2;
+    document.querySelectorAll("#rangesS .rbtn").forEach(x=>x.classList.remove("on"));
+    draw();
+  };
+}
+function init(){
+  if(!inited){inited=true;wire();}
+  if(pendingOpen){grp=pendingOpen.g;sel=pendingOpen.k;pendingOpen=null;}
+  setGrpButtons();buildChips();draw();
+}
+function open(g,k){
+  pendingOpen={g,k};
+  window.IN_showTab("S");
+}
+return{init,open};
+})();
+
+// ══════════ 탭 전환 (4개 탭) ══════════
+(function(){
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS")};
+const band=document.getElementById("band"),bandTxt=document.getElementById("bandTxt"),stamp=document.getElementById("stamp");
+let fxStarted=false;
+function show(k){
+  Object.keys(secs).forEach(x=>{secs[x].style.display=(x===k?"":"none");navs[x].classList.toggle("on",x===k);});
+  if(k==="R"){stamp.textContent="01 기준금리 · 확인일 2026-07-07 · 내장 데이터";band.style.background="var(--green)";bandTxt.textContent="MACRO INDEX DASHBOARD";}
+  if(k==="F"){stamp.textContent="02 환율 · ECB 일별 기준환율";band.style.background="var(--navy)";bandTxt.textContent="FX RATES DASHBOARD";if(!fxStarted){fxStarted=true;FX.init();}}
+  if(k==="I"){stamp.textContent="03 종합 주가지수 · 수집 파일 기반"+(window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"");band.style.background="#A63D40";bandTxt.textContent="EQUITY INDEX DASHBOARD";IDX.init();}
+  if(k==="S"){stamp.textContent="04 산업별 주가지수 · 수집 파일 기반"+(window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"");band.style.background="#6B4E9B";bandTxt.textContent="SECTOR INDEX DASHBOARD";SEC.init();}
+}
+window.IN_showTab=show;
+navs.R.onclick=()=>show("R");navs.F.onclick=()=>show("F");navs.I.onclick=()=>show("I");navs.S.onclick=()=>show("S");
+})();
+
+</script>
+</body>
+</html>

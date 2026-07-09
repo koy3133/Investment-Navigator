@@ -1,0 +1,149 @@
+"""
+Investment Navigator · 주가지수 수집기 — v3
+------------------------------------------------
+MAIN      : KOSPI, KOSDAQ, S&P500, NASDAQ, 니케이225, 상해종합
+KR_SECTOR : KOSPI 업종지수 10종   (KRX 계정 필요)
+KQ_SECTOR : KOSDAQ 업종지수       (KRX 계정 필요)
+US_SECTOR : 미국 SPDR 섹터 ETF 11종
+대체       : KRX 계정 미설정 시 KOSPI/KOSDAQ 종합지수는 야후 파이낸스로 수집
+결과       : data_indices.js
+
+[KRX 계정] data.krx.co.kr 무료 가입 후 환경변수 KRX_ID / KRX_PW 설정(파일 하단 안내).
+설치(1회) : pip install pykrx yfinance pandas
+실행      : python indices_collector.py
+"""
+import os
+import json
+import datetime as dt
+import pandas as pd
+
+YEARS = 10
+END = dt.date.today()
+START = END - dt.timedelta(days=365 * YEARS + 10)
+KRX_READY = bool(os.getenv("KRX_ID") and os.getenv("KRX_PW"))
+
+series = {}
+
+
+def downsample(pts):
+    cutoff = (END - dt.timedelta(days=730)).strftime("%Y-%m-%d")
+    return [p for p in pts if p[0] < cutoff][::5] + [p for p in pts if p[0] >= cutoff]
+
+
+def add(key, label, group, s):
+    s = s.dropna()
+    pts = [[d.strftime("%Y-%m-%d"), round(float(v), 2)] for d, v in s.items()]
+    if not pts:
+        print(f"[SKIP] {key} {label}: 데이터 없음")
+        return False
+    series[key] = {"label": label, "group": group, "pts": downsample(pts)}
+    print(f"[OK]   {key} {label}: {len(series[key]['pts'])}점")
+    return True
+
+
+# ──────────────── 해외 (yfinance) ────────────────
+yff = None
+try:
+    import yfinance as yf
+
+    def yff(tic):
+        df = yf.download(tic, start=START.isoformat(), interval="1d",
+                         progress=False, auto_adjust=False)
+        c = df["Close"]
+        if isinstance(c, pd.DataFrame):
+            c = c.iloc[:, 0]
+        return c
+
+    for k, (tic, lb) in {
+        "SPX": ("^GSPC", "S&P500"), "IXIC": ("^IXIC", "NASDAQ"),
+        "N225": ("^N225", "니케이225"), "SSE": ("000001.SS", "상해종합"),
+    }.items():
+        try:
+            add(k, lb, "MAIN", yff(tic))
+        except Exception as e:
+            print(f"[FAIL] {k}: {e}")
+
+    for k, (tic, lb) in {
+        "US_TECH": ("XLK", "IT(기술)"), "US_FIN": ("XLF", "금융"),
+        "US_HLTH": ("XLV", "헬스케어"), "US_ENER": ("XLE", "에너지"),
+        "US_INDU": ("XLI", "산업재"), "US_DISC": ("XLY", "경기소비재"),
+        "US_STAP": ("XLP", "필수소비재"), "US_UTIL": ("XLU", "유틸리티"),
+        "US_MATR": ("XLB", "소재"), "US_REAL": ("XLRE", "리츠·부동산"),
+        "US_COMM": ("XLC", "커뮤니케이션"),
+    }.items():
+        try:
+            add(k, lb, "US_SECTOR", yff(tic))
+        except Exception as e:
+            print(f"[FAIL] {k}: {e}")
+except Exception as e:
+    print("[해외 수집 실패]", e)
+
+# ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
+if KRX_READY:
+    try:
+        from pykrx import stock
+
+        f, t = START.strftime("%Y%m%d"), END.strftime("%Y%m%d")
+
+        def krx_close(ticker):
+            return stock.get_index_ohlcv_by_date(f, t, ticker)["종가"]
+
+        for key, lb, tk in [("KOSPI", "KOSPI", "1001"), ("KOSDAQ", "KOSDAQ", "2001")]:
+            try:
+                add(key, lb, "MAIN", krx_close(tk))
+            except Exception as e:
+                print(f"[FAIL] {key}: {e}")
+
+        def collect_sectors(market, group, want, prefix):
+            try:
+                tickers = stock.get_index_ticker_list(market=market)
+                names = {tk: stock.get_index_ticker_name(tk) for tk in tickers}
+            except Exception as e:
+                print(f"[{market} 업종 목록 조회 실패]", e)
+                return
+            for key, kw in want.items():
+                kwn = kw.replace("·", "").replace(" ", "")
+                hit = [tk for tk, nm in names.items()
+                       if kwn in nm.replace("·", "").replace(" ", "")]
+                if hit:
+                    try:
+                        add(key, prefix + names[hit[0]], group, krx_close(hit[0]))
+                    except Exception as e:
+                        print(f"[FAIL] {key}({kw}): {e}")
+                else:
+                    print(f"[MISS] {market} {kw}: 일치 업종지수 없음")
+
+        collect_sectors("KOSPI", "KR_SECTOR", {
+            "KR_ELEC": "전기전자", "KR_CHEM": "화학", "KR_FIN": "금융",
+            "KR_AUTO": "운수장비", "KR_STEEL": "철강", "KR_CONST": "건설",
+            "KR_RETAIL": "유통", "KR_PHARM": "의약품", "KR_TELCO": "통신",
+            "KR_FOOD": "음식료",
+        }, "")
+
+        collect_sectors("KOSDAQ", "KQ_SECTOR", {
+            "KQ_PHARM": "제약", "KQ_ITHW": "IT H", "KQ_ITSW": "IT S",
+            "KQ_FIN": "금융", "KQ_RETAIL": "유통", "KQ_CHEM": "화학",
+            "KQ_MACH": "기계", "KQ_MFG": "제조", "KQ_COMM": "통신방송",
+            "KQ_ENT": "오락",
+        }, "")
+    except Exception as e:
+        print("[국내 수집 실패]", e)
+else:
+    print("[안내] KRX 계정 미설정 → 국내 업종지수는 건너뜁니다.")
+    print("       data.krx.co.kr 무료 가입 후 KRX_ID / KRX_PW 설정 뒤 재실행하십시오.")
+
+# KOSPI/KOSDAQ 종합지수 대체(야후)
+if yff is not None:
+    for key, tic, lb in [("KOSPI", "^KS11", "KOSPI"), ("KOSDAQ", "^KQ11", "KOSDAQ")]:
+        if key not in series:
+            try:
+                if add(key, lb, "MAIN", yff(tic)):
+                    print(f"       ({key}: 야후 파이낸스 대체 수집)")
+            except Exception as e:
+                print(f"[FAIL] {key}(야후 대체): {e}")
+
+out = "window.IDX_DATA=" + json.dumps(
+    {"generated": END.isoformat(), "series": series}, ensure_ascii=False) + ";"
+with open("data_indices.js", "w", encoding="utf-8") as fp:
+    fp.write(out)
+print(f"저장 완료: data_indices.js · {len(series)}개 시리즈")
