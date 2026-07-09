@@ -555,7 +555,7 @@ function buildCards(dates,rates){
 }
 function renderBarsF(r){
   const svg=document.getElementById("barsF");if(!svg)return;
-  const items=Object.keys(PAIRS).map(k=>({label:PAIRS[k].label,v:PAIRS[k].calc(r),c:PAIRS[k].color})).sort((x,y)=>y.v-x.v);
+  const items=Object.keys(PAIRS).map(k=>({label:PAIRS[k].label,v:PAIRS[k].calc(r),c:PAIRS[k].color}));
   const W=260,rowH=44,PL=76,PR=54,H=items.length*rowH+10;
   const maxV=Math.max.apply(null,items.map(i2=>i2.v));
   let g="";
