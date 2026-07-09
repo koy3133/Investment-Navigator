@@ -100,6 +100,19 @@ try:
             add(k, lb, grp, yff(tic), unit)
         except Exception as e:
             print(f"[FAIL] {k}: {e}")
+
+    # ── 가상자산 (야후, 달러 표시, 24시간 거래) ──
+    cry = {
+        "CRY_BTC": ("BTC-USD", "비트코인", "CRYPTO", "달러"),
+        "CRY_ETH": ("ETH-USD", "이더리움", "CRYPTO", "달러"),
+        "CRY_SOL": ("SOL-USD", "솔라나",   "CRYPTO", "달러"),
+        "CRY_XRP": ("XRP-USD", "리플",     "CRYPTO", "달러"),
+    }
+    for k, (tic, lb, grp, unit) in cry.items():
+        try:
+            add(k, lb, grp, yff(tic), unit)
+        except Exception as e:
+            print(f"[FAIL] {k}: {e}")
 except Exception as e:
     print("[해외 수집 실패]", e)
 
@@ -129,7 +142,9 @@ if KRX_READY:
             for key, kw in want.items():
                 kwn = kw.replace("·", "").replace(" ", "")
                 hit = [tk for tk, nm in names.items()
-                       if kwn in nm.replace("·", "").replace(" ", "")]
+                       if kwn in nm.replace("·", "").replace(" ", "")
+                       and "200" not in nm and "150" not in nm]
+                hit.sort(key=lambda tk: len(names[tk]))  # 가장 짧은 정식 업종명 우선
                 if hit:
                     try:
                         add(key, prefix + names[hit[0]], group, krx_close(hit[0]))
