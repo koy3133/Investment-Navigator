@@ -68,6 +68,8 @@
   .foot a{color:var(--green);text-decoration:none}
   .foot a:hover{text-decoration:underline}
   .retry{font-family:var(--mono);font-size:12px;color:#fff;background:var(--green);border:none;border-radius:7px;padding:7px 14px;cursor:pointer;font-weight:700}
+  .qm{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--faint);color:var(--faint);font-size:9px;font-weight:700;cursor:help;vertical-align:1px;margin-left:2px}
+  .qm:hover{border-color:var(--green);color:var(--green)}
   button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
   @media (max-width:920px){.kpis{grid-template-columns:repeat(4,1fr)}.main{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.band{display:none}}
   @media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.custom{margin-left:0}}
@@ -84,6 +86,7 @@
     <button id="navF">02 환율</button>
     <button id="navI">03 종합 주가지수</button>
     <button id="navS">04 산업별 주가지수</button>
+    <button id="navC">05 원자재</button>
   </nav>
 
   <div class="layout">
@@ -212,9 +215,9 @@
         <div class="panel">
           <h2 class="ptitle">산업별 성과 · 선택 기간 수익률</h2>
           <div style="display:flex;gap:6px;margin-bottom:10px">
-            <button class="rbtn on" id="mkKR">KOSPI 업종</button>
-            <button class="rbtn" id="mkKQ">KOSDAQ 업종</button>
-            <button class="rbtn" id="mkUS">S&P 섹터</button>
+            <button class="rbtn on" id="mkKR">KOSPI 업종 <span class="qm" data-k="G_KR">?</span></button>
+            <button class="rbtn" id="mkKQ">KOSDAQ 업종 <span class="qm" data-k="G_KQ">?</span></button>
+            <button class="rbtn" id="mkUS">S&P 섹터 <span class="qm" data-k="G_US">?</span></button>
           </div>
           <svg id="barsI" viewBox="0 0 820 100" style="width:100%;display:block"></svg>
           <div class="note" id="secNoteI"></div>
@@ -230,9 +233,9 @@
       <!-- ══════════ 04 산업별 주가지수 ══════════ -->
       <section id="secS" style="display:none">
         <div class="controls">
-          <button class="rbtn on" id="gKR">KOSPI 업종</button>
-          <button class="rbtn" id="gKQ">KOSDAQ 업종</button>
-          <button class="rbtn" id="gUS">S&P 섹터</button>
+          <button class="rbtn on" id="gKR">KOSPI 업종 <span class="qm" data-k="G_KR">?</span></button>
+          <button class="rbtn" id="gKQ">KOSDAQ 업종 <span class="qm" data-k="G_KQ">?</span></button>
+          <button class="rbtn" id="gUS">S&P 섹터 <span class="qm" data-k="G_US">?</span></button>
         </div>
         <div class="controls" id="chipsS"></div>
         <div class="controls" id="rangesS">
@@ -272,11 +275,66 @@
         </footer>
       </section>
 
+      <!-- ══════════ 05 원자재 ══════════ -->
+      <section id="secC" style="display:none">
+        <div class="controls">
+          <button class="rbtn on" id="gcE">에너지 <span class="qm" data-k="G_CE">?</span></button>
+          <button class="rbtn" id="gcP">귀금속 <span class="qm" data-k="G_CP">?</span></button>
+          <button class="rbtn" id="gcI">산업금속 <span class="qm" data-k="G_CI">?</span></button>
+          <button class="rbtn" id="gcA">농산물 <span class="qm" data-k="G_CA">?</span></button>
+        </div>
+        <div class="controls" id="chipsC"></div>
+        <div class="controls" id="rangesC">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn on" data-r="1y">1년</button>
+          <button class="rbtn" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0C" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1C" aria-label="종료일">
+            <button class="go" id="goC">적용</button>
+          </div>
+        </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">선택 기간 수익률</h2>
+          <svg id="barsCL" viewBox="0 0 260 300" style="width:100%;display:block"></svg>
+          <div class="note">막대를 누르면 해당 원자재가 선택됩니다</div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleC">원자재 비교</h2>
+          <div class="chart-wrap">
+            <svg class="big" id="chartC" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipC"></div>
+          </div>
+          <div class="legend" id="legC"></div>
+          <div class="note" id="noteC"></div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 야후 파이낸스 선물 근월물 종가 기준(수집 파일 data_indices.js). 실시간이 아니며, 알루미늄은 거래량이 적어 가격 품질이 낮고, 우라늄은 선물 시세 비공개로 실물 보유 신탁(Sprott) 주가를 대용합니다.</div>
+          <div><b>단위</b> · 품목별 국제 표준 단위(달러/배럴, 달러/온스, 센트/부셸 등)를 사용하며 각 지표의 ? 에서 확인할 수 있습니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
     </div>
     <aside class="band" id="band" style="background:var(--green)" aria-hidden="true"><span id="bandTxt">MACRO INDEX DASHBOARD</span></aside>
   </div>
 </div>
 
+<div id="infoWrap" style="display:none;position:fixed;inset:0;background:rgba(6,14,22,.45);z-index:50;align-items:center;justify-content:center;padding:20px">
+  <div class="panel" style="max-width:520px;width:100%;margin:0">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px">
+      <h3 id="infoT" style="margin:0;font-size:15px"></h3>
+      <button id="infoX" class="rbtn">닫기</button>
+    </div>
+    <div id="infoB" style="font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.65"></div>
+  </div>
+</div>
 <script src="data_indices.js"></script>
 <script>
 "use strict";
@@ -300,6 +358,68 @@ window.IN_hbar0=function(svg,rows,fmt,onClick){
   svg.innerHTML=g;
   if(onClick)svg.querySelectorAll(".hb").forEach(el=>{el.onclick=()=>onClick(el.getAttribute("data-k"));});
 };
+// ══════════ 지표 설명(?) ══════════
+window.IN_INFO={
+R_ALL:{t:"기준금리 비교",b:"6개국 정책금리와 한·미 금리차(점선)를 한 화면에 표시합니다. 기준: 각 중앙은행 결정일 이력(내장). 금리차 확대는 통상 원화 약세·자금 유출 압력 요인으로 해석됩니다."},
+R_KR:{t:"한국은행 기준금리",b:"금융통화위원회가 연 8회 결정합니다. 기준: 한국은행 공표 이력(내장, 자동갱신 아님). 물가, 가계부채, 한·미 금리차가 주요 결정 변수입니다."},
+R_US:{t:"미국 연방기금 목표범위",b:"FOMC가 연 8회 결정하는 목표 '범위'(상·하한)입니다. 기준: Fed 공표 이력(내장). 글로벌 금리·달러·위험자산 전반의 기준점 역할을 합니다."},
+R_EA:{t:"유로존 예금 facility 금리",b:"ECB의 실질 정책 하한 금리입니다. 기준: ECB 공표 이력(내장), 결정일 기준(시행일과 수일 차이 가능). 유로존 물가·경기와 유로화에 직결됩니다."},
+R_GB:{t:"영국 Bank Rate",b:"영란은행 MPC가 결정합니다. 기준: BoE 공표 이력(내장). 영국 물가와 파운드화의 핵심 변수입니다."},
+R_CN:{t:"중국 LPR",b:"인민은행 고시 대출우대금리(1년/5년)로 매월 20일경 발표됩니다. 기준: PBoC 발표(내장). 5년물은 주택담보 금리와 연동되어 부동산 경기 신호로 읽힙니다."},
+R_JP:{t:"일본 정책금리",b:"무담보 콜금리(익일물) 유도 목표이며 '약 1.0%'처럼 수준으로 제시됩니다. 기준: BoJ 공표(내장, 대표치 표기). 엔화와 엔캐리 자금 흐름에 직결됩니다."},
+F_ALL:{t:"환율 비교(지수)",b:"5개 통화를 구간 시작=100으로 재계산해 원화 대비 상대 강도를 비교합니다. 100 위는 해당 통화 강세(원화 약세) 구간입니다."},
+F_USDKRW:{t:"원/달러",b:"기준: ECB 일별 기준환율(영업일 1회, 실시간 아님). 한·미 금리차, 위험선호, 반도체 수출 경기가 주요 등락 요인이며 국내 자산시장 전반의 핵심 변수입니다."},
+F_EURKRW:{t:"원/유로",b:"기준: ECB 일별 기준환율의 교차 계산. ECB 통화정책과 유로존 경기에 좌우되며, 대유럽 수출입 기업 실적에 영향합니다."},
+F_GBPKRW:{t:"원/파운드",b:"기준: ECB 일별 기준환율의 교차 계산. 영란은행 정책과 영국 물가·재정 이슈에 민감합니다."},
+F_CNYKRW:{t:"원/위안",b:"기준: ECB 일별 기준환율의 교차 계산. 위안화는 관리변동환율제라 변동이 완만하며, 중국 경기·미중 관계가 주요 변수입니다. 원화와 동조성이 높습니다."},
+F_JPYKRW:{t:"원/엔(100엔)",b:"기준: ECB 일별 기준환율의 교차 계산, 100엔당 원화 표기. BoJ 금리 경로와 엔캐리 청산 여부가 핵심 변수이며, 급등 시 글로벌 위험회피 신호로 읽히기도 합니다."},
+I_ALL:{t:"종합지수 비교(지수)",b:"6개 지수를 구간 시작=100으로 재계산해 상대 성과를 비교합니다. 절대 수준은 시장마다 단위가 달라 직접 비교하지 않습니다."},
+I_KOSPI:{t:"KOSPI",b:"한국 유가증권시장 시가총액 가중 지수. 기준: 종가(KRX/야후, 실시간 아님). 반도체 등 수출 경기와 외국인 수급, 원/달러에 민감합니다."},
+I_KOSDAQ:{t:"KOSDAQ",b:"중소·성장주 중심 시장 지수. 기준: 종가(KRX/야후). 위험선호와 금리 수준에 민감하며 변동성이 KOSPI보다 큽니다."},
+I_SPX:{t:"S&P500",b:"미국 대형주 500종목 지수로 글로벌 주식의 사실상 기준. 기준: 종가(야후). 미국 금리·실적 시즌·고용/물가 지표가 주요 변수입니다."},
+I_IXIC:{t:"NASDAQ 종합",b:"기술주 비중이 큰 지수로 금리(할인율)에 특히 민감합니다. 기준: 종가(야후). 전용 섹터지수가 없어 산업별 분해는 제공하지 않습니다."},
+I_N225:{t:"니케이225",b:"일본 대표 225종목 가격 가중 지수. 기준: 종가(야후). 엔화 약세(수출주 우호)와 BoJ 정책이 주요 변수입니다."},
+I_SSE:{t:"상해종합",b:"상해거래소 전 종목 지수. 기준: 종가(야후). 중국 정책(부양책·규제)과 부동산 경기의 영향이 크며 개인 비중이 높은 시장입니다."},
+G_KR:{t:"KOSPI 업종지수",b:"KRX가 산출하는 유가증권시장 업종별 지수 10종. 기준: 종가(pykrx, KRX 계정 필요). 표시는 선택 기간 '수익률'이며 시가총액 가중 기여도가 아닙니다."},
+G_KQ:{t:"KOSDAQ 업종지수",b:"KRX가 산출하는 코스닥 업종별 지수. 기준: 종가(pykrx). 이름 검색으로 수집하므로 KRX 개편 시 일부 업종이 빠질 수 있습니다."},
+G_US:{t:"S&P 섹터",b:"S&P500의 11개 섹터를 추종하는 SPDR 섹터 ETF 종가를 대용으로 사용합니다. ETF 특성상 배당·보수로 원지수와 미세한 차이가 있습니다."},
+G_CE:{t:"에너지",b:"원유(WTI·브렌트)와 미국 천연가스 선물입니다. 인플레이션과 각국 금리 경로에 직결되는 매크로 핵심 변수입니다."},
+G_CP:{t:"귀금속",b:"금·은·백금·팔라듐. 금·은은 실질금리와 달러에 역행하는 경향이 있고, 백금·팔라듐은 산업(촉매) 수요 비중이 커 경기 신호를 겸합니다."},
+G_CI:{t:"산업금속",b:"구리 중심의 경기 민감 원자재입니다. 알루미늄은 참고용(거래량 적음), 우라늄은 신탁 주가 대용입니다. 니켈·리튬 등은 무료 벤치마크 부재로 제외했습니다."},
+G_CA:{t:"농산물",b:"3대 곡물(옥수수·밀·대두)과 설탕·커피. 기상, 재고, 지정학(흑해 등)이 주요 변수이며 식품 인플레이션 관찰에 유용합니다."},
+CMD_WTI:{t:"원유 WTI",b:"미국 서부텍사스산 원유 선물 근월물, 달러/배럴. 미국 벤치마크. OPEC+ 감산, 미 재고, 경기 전망에 등락하며 물가·금리 경로에 직결됩니다."},
+CMD_BRENT:{t:"원유 브렌트",b:"북해산 원유 선물 근월물, 달러/배럴. 글로벌 벤치마크로 WTI와의 스프레드 자체가 수급 정보를 담습니다."},
+CMD_NG:{t:"천연가스",b:"미국 헨리허브 선물 근월물, 달러/MMBtu. 계절성(냉·난방)과 재고에 크게 흔들리며 변동성이 매우 큽니다. 유럽 가격(TTF)과는 별개 시장입니다."},
+CMD_GOLD:{t:"금",b:"COMEX 선물 근월물, 달러/온스. 실질금리 하락·달러 약세·지정학 불안에 강세를 보이는 대표 안전자산이며 중앙은행 매입도 변수입니다."},
+CMD_SILVER:{t:"은",b:"COMEX 선물 근월물, 달러/온스. 귀금속과 산업재(태양광 등) 성격을 겸해 금보다 변동성이 큽니다. 금/은 비율이 상대가치 지표로 쓰입니다."},
+CMD_PLAT:{t:"백금",b:"NYMEX 선물 근월물, 달러/온스. 분류는 귀금속이나 수요 대부분이 산업용(디젤 촉매·수소)이라 경기 신호를 겸합니다."},
+CMD_PALL:{t:"팔라듐",b:"NYMEX 선물 근월물, 달러/온스. 가솔린차 촉매 수요 중심으로, 전기차 전환이 구조적 수요 변수입니다. 유동성이 얇아 급등락이 잦습니다."},
+CMD_COPPER:{t:"구리",b:"COMEX 선물 근월물, 달러/파운드. 제조업 경기 선행지표('닥터 코퍼'). 중국 수요, 전력망·전기차 투자, 광산 공급 차질이 주요 변수입니다."},
+CMD_ALUM:{t:"알루미늄(참고)",b:"COMEX 선물, 달러/톤. 글로벌 기준은 LME(유료)이며 본 지표는 거래량이 적어 가격 품질이 낮습니다. 추세 참고용으로만 사용하십시오."},
+CMD_URAN:{t:"우라늄(신탁 대용)",b:"우라늄 현물 선물 시세가 비공개라 실물 보유 신탁(Sprott Physical Uranium, SRUUF) 주가를 대용합니다. 신탁 프리미엄/할인만큼 현물가와 괴리될 수 있습니다. 원전 정책·전력 수요가 변수입니다."},
+CMD_CORN:{t:"옥수수",b:"CBOT 선물 근월물, 센트/부셸. 미국 작황(파종·수확기 기상)과 에탄올·사료 수요가 주요 변수입니다."},
+CMD_WHEAT:{t:"밀",b:"CBOT 선물 근월물, 센트/부셸. 흑해(러시아·우크라이나) 수출 등 지정학 이슈에 특히 민감합니다."},
+CMD_SOY:{t:"대두",b:"CBOT 선물 근월물, 센트/부셸. 중국 수입 수요와 남미(브라질·아르헨티나) 작황이 핵심 변수입니다."},
+CMD_SUGAR:{t:"설탕",b:"ICE 원당 선물 근월물, 센트/파운드. 브라질·인도 작황과 에탄올 전환 비율이 변수이며 식품 물가와 연결됩니다."},
+CMD_COFFEE:{t:"커피",b:"ICE 아라비카 선물 근월물, 센트/파운드. 브라질 서리·가뭄 등 기상 충격에 급등하는 대표 소프트 원자재입니다."}
+};
+(function(){
+  const wrap=document.getElementById("infoWrap");
+  document.getElementById("infoX").onclick=()=>{wrap.style.display="none";};
+  wrap.addEventListener("click",e=>{if(e.target===wrap)wrap.style.display="none";});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape")wrap.style.display="none";});
+  document.addEventListener("click",function(e){
+    const q=e.target.closest(".qm");
+    if(!q)return;
+    e.stopPropagation();e.preventDefault();
+    const info=window.IN_INFO[q.getAttribute("data-k")];
+    if(!info)return;
+    document.getElementById("infoT").textContent=info.t;
+    document.getElementById("infoB").textContent=info.b;
+    wrap.style.display="flex";
+  },true);
+})();
+
 
 // ══════════ 탭 전환 ══════════
 const secR=document.getElementById("secR"),secF=document.getElementById("secF");
@@ -358,7 +478,7 @@ const kpisEl=document.getElementById("kpisR");
 ORDER.forEach(k=>{
   const D=DATA[k],b=document.createElement("button");
   b.className="kpi"+(k===curKey?" on":"");
-  b.innerHTML='<span class="bar" style="background:'+D.color+'"></span><div class="c">'+D.country+' <span class="chg '+D.dir+'">'+D.dirLabel+'</span></div><div class="v">'+D.nowText+'</div><div class="s">'+(k==="ALL"?"한·미 금리차":D.bank)+'</div>';
+  b.innerHTML='<span class="bar" style="background:'+D.color+'"></span><div class="c">'+D.country+' <span class="qm" data-k="R_'+k+'">?</span> <span class="chg '+D.dir+'">'+D.dirLabel+'</span></div><div class="v">'+D.nowText+'</div><div class="s">'+(k==="ALL"?"한·미 금리차":D.bank)+'</div>';
   b.onclick=()=>{curKey=k;kpisEl.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));b.classList.add("on");render();};
   kpisEl.appendChild(b);
 });
@@ -535,7 +655,7 @@ function buildCards(dates,rates){
   // 비교 카드
   const bAll=document.createElement("button");
   bAll.className="kpi"+(curPair==="ALL"?" on":"");
-  bAll.innerHTML='<span class="bar" style="background:#1E2A33"></span><div class="c">비교 <span class="chg hold">통합</span></div><div class="v">4개 통화</div><div class="s">구간 시작=100 지수</div>';
+  bAll.innerHTML='<span class="bar" style="background:#1E2A33"></span><div class="c">비교 <span class="qm" data-k="F_ALL">?</span> <span class="chg hold">통합</span></div><div class="v">5개 통화</div><div class="s">구간 시작=100 지수</div>';
   bAll.onclick=()=>{curPair="ALL";kpisEl.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));bAll.classList.add("on");drawChart();};
   kpisEl.appendChild(bAll);
   Object.keys(PAIRS).forEach(k=>{
@@ -546,7 +666,7 @@ function buildCards(dates,rates){
     const arrow=chg==null?"":chg>0.001?"▲":chg<-0.001?"▼":"—";
     const b=document.createElement("button");
     b.className="kpi"+(k===curPair?" on":"");
-    b.innerHTML='<span class="bar" style="background:'+P.color+'"></span><div class="c">'+P.label+'</div><div class="v">'+fmtV(v,P.dp)+'</div><div class="s '+cls+'">'+arrow+' '+(chg==null?"—":Math.abs(chg).toFixed(2)+"%")+' <span style="color:var(--faint)">전일비 · '+P.code+'</span></div>';
+    b.innerHTML='<span class="bar" style="background:'+P.color+'"></span><div class="c">'+P.label+' <span class="qm" data-k="F_'+k+'">?</span></div><div class="v">'+fmtV(v,P.dp)+'</div><div class="s '+cls+'">'+arrow+' '+(chg==null?"—":Math.abs(chg).toFixed(2)+"%")+' <span style="color:var(--faint)">전일비 · '+P.code+'</span></div>';
     b.onclick=()=>{curPair=k;kpisEl.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));b.classList.add("on");drawChart();};
     kpisEl.appendChild(b);
   });
@@ -787,7 +907,7 @@ function buildCards(){
   const s=S(),el=document.getElementById("kpisI");el.innerHTML="";
   const bAll=document.createElement("button");
   bAll.className="kpi"+(cur==="ALL"?" on":"");
-  bAll.innerHTML='<span class="bar" style="background:#1E2A33"></span><div class="c">비교 <span class="chg hold">통합</span></div><div class="v">종합지수</div><div class="s">구간 시작=100 지수</div>';
+  bAll.innerHTML='<span class="bar" style="background:#1E2A33"></span><div class="c">비교 <span class="qm" data-k="I_ALL">?</span> <span class="chg hold">통합</span></div><div class="v">종합지수</div><div class="s">구간 시작=100 지수</div>';
   bAll.onclick=()=>{cur="ALL";el.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));bAll.classList.add("on");draw();};
   el.appendChild(bAll);
   MAINS.forEach(m=>{
@@ -799,7 +919,7 @@ function buildCards(){
     const arrow=chg==null?"":chg>0?"▲":chg<0?"▼":"—";
     const b=document.createElement("button");
     b.className="kpi"+(k===cur?" on":"");
-    b.innerHTML='<span class="bar" style="background:'+col+'"></span><div class="c">'+d.label+'</div><div class="v">'+fmtN(v)+'</div><div class="s '+cls+'">'+arrow+' '+(chg==null?"—":Math.abs(chg).toFixed(2)+"%")+' <span style="color:var(--faint)">전일비</span></div>';
+    b.innerHTML='<span class="bar" style="background:'+col+'"></span><div class="c">'+d.label+' <span class="qm" data-k="I_'+k+'">?</span></div><div class="v">'+fmtN(v)+'</div><div class="s '+cls+'">'+arrow+' '+(chg==null?"—":Math.abs(chg).toFixed(2)+"%")+' <span style="color:var(--faint)">전일비</span></div>';
     b.onclick=()=>{cur=k;el.querySelectorAll(".kpi").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw();};
     el.appendChild(b);
   });
@@ -1124,21 +1244,132 @@ function open(g,k){
 return{init,open};
 })();
 
-// ══════════ 탭 전환 (4개 탭) ══════════
+// ══════════ 05 원자재 ══════════
+const CMD=(()=>{
+const GRP={E:{g:"CMD_ENE",n:"에너지"},P:{g:"CMD_PME",n:"귀금속"},I:{g:"CMD_IND",n:"산업금속"},A:{g:"CMD_AGR",n:"농산물"}};
+const PAL=["#17694F","#2F4B7C","#3D8A8C","#C9A227","#A63D40","#E8862E","#6B4E9B"];
+let grp="E",sel="ALL",curRange="1y",cT0=null,cT1=null,inited=false;
+const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
+const fmtN=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function rangeWindow(){
+  const now=Date.now();
+  if(cT0!=null)return[cT0,Math.min(cT1,now)];
+  const sp={"1m":31,"3m":92,"1y":366,"3y":3*366,"5y":5*366,"10y":10*366};
+  if(curRange==="all")return[Date.parse("1990-01-01"),now];
+  return[now-sp[curRange]*DAY,now];
+}
+function keysOf(){
+  const s=S();if(!s)return[];
+  return Object.keys(s).filter(k=>s[k].group===GRP[grp].g);
+}
+function buildChips(){
+  const el=document.getElementById("chipsC");el.innerHTML="";
+  const ks=keysOf(),s=S();
+  const mkBtn=(label,key,qk)=>{
+    const b=document.createElement("button");
+    b.className="rbtn"+((sel===key)?" on":"");
+    b.innerHTML=label+(qk?' <span class="qm" data-k="'+qk+'">?</span>':'');
+    b.onclick=()=>{sel=key;buildChips();draw();};
+    el.appendChild(b);
+  };
+  mkBtn("전체 비교","ALL",null);
+  ks.forEach(k=>mkBtn(s[k].label,k,k));
+  if(!ks.length){
+    el.innerHTML='<span class="note" style="margin:0">수집 파일에 '+GRP[grp].n+' 데이터가 없습니다. indices_collector.py(v4) 실행 후 갱신하십시오.</span>';
+  }
+}
+function draw(){
+  const s=S(),svg=document.getElementById("chartC"),tip=document.getElementById("tipC");
+  if(!s){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">data_indices.js 파일을 준비해 주십시오.</text>';return;}
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const ks=keysOf();
+  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+GRP[grp].n+' 데이터가 없습니다. 수집기 v4 실행 여부를 확인하십시오.</text>';document.getElementById("legC").innerHTML="";drawBarsCL();return;}
+  if(sel!=="ALL"&&ks.indexOf(sel)<0)sel="ALL";
+  if(sel==="ALL"){
+    document.getElementById("titleC").textContent=GRP[grp].n+" 비교 (구간 시작=100)";
+    const list=[];
+    ks.forEach((k,i)=>{
+      const w=window.IN_inWin(s[k].pts,t0,t1);if(w.length<2)return;
+      const base=w[0][1];
+      list.push({label:s[k].label,color:PAL[i%PAL.length],actual:w.map(p=>p[1]),pts:w.map(p=>[Date.parse(p[0]),p[1]/base*100])});
+    });
+    const r=window.IN_drawLines(svg,tip,"crossC",list,1,fmtN);
+    document.getElementById("legC").innerHTML=list.map(s2=>{
+      const chg=s2.pts[s2.pts.length-1][1]-100;
+      return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
+    }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+    document.getElementById("noteC").textContent="각 품목을 구간 시작일=100으로 재계산한 상대 성과입니다. 품목별 단위가 달라 절대 가격은 개별 선택 시 표시됩니다.";
+  }else{
+    const d=s[sel],u=d.unit||"";
+    document.getElementById("titleC").textContent=d.label+" 추이"+(u?" ("+u+")":"");
+    const w=window.IN_inWin(d.pts,t0,t1).map(p=>[Date.parse(p[0]),p[1]]);
+    const col=PAL[Math.max(0,ks.indexOf(sel))%PAL.length];
+    const r=window.IN_drawLines(svg,tip,"crossC",w.length?[{label:d.label,color:col,pts:w}]:[],2,fmtN);
+    if(w.length){
+      const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
+      document.getElementById("legC").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+(u?' '+u:'')+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+    }else document.getElementById("legC").innerHTML="";
+    document.getElementById("noteC").textContent=(sel==="CMD_ALUM"?"알루미늄은 거래량이 적어 가격 품질이 낮습니다(참고용).":sel==="CMD_URAN"?"실물 우라늄 보유 신탁(Sprott) 주가 대용이며 현물가와 괴리될 수 있습니다.":"");
+  }
+  drawBarsCL();
+}
+function drawBarsCL(){
+  const s=S(),svg=document.getElementById("barsCL");
+  if(!svg)return;
+  if(!s){window.IN_hbar0(svg,[],v=>"",null);return;}
+  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
+  const rows=[];
+  keysOf().forEach(k=>{const w=window.IN_inWin(s[k].pts,t0,t1);if(w.length<2)return;
+    rows.push({k,label:s[k].label,val:(w[w.length-1][1]-w[0][1])/w[0][1]*100});});
+  window.IN_hbar0(svg,rows,v=>(v>0?"+":"")+v.toFixed(1)+"%",k=>{sel=k;buildChips();draw();});
+}
+function setGrpButtons(){
+  [["gcE","E"],["gcP","P"],["gcI","I"],["gcA","A"]].forEach(p=>{
+    document.getElementById(p[0]).classList.toggle("on",grp===p[1]);
+  });
+}
+function wire(){
+  [["gcE","E"],["gcP","P"],["gcI","I"],["gcA","A"]].forEach(p=>{
+    document.getElementById(p[0]).onclick=()=>{grp=p[1];sel="ALL";setGrpButtons();buildChips();draw();};
+  });
+  document.querySelectorAll("#rangesC .rbtn").forEach(b=>{
+    b.onclick=()=>{curRange=b.dataset.r;cT0=cT1=null;
+      document.querySelectorAll("#rangesC .rbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw();};
+  });
+  document.getElementById("goC").onclick=()=>{
+    const d0=document.getElementById("d0C").value,d1=document.getElementById("d1C").value;
+    if(!d0||!d1)return alert("시작일과 종료일을 모두 지정하십시오.");
+    let a=Date.parse(d0),b2=Date.parse(d1);
+    if(a>b2){const t=a;a=b2;b2=t;}
+    cT0=a;cT1=b2;
+    document.querySelectorAll("#rangesC .rbtn").forEach(x=>x.classList.remove("on"));
+    draw();
+  };
+}
+function init(){
+  if(!inited){inited=true;wire();}
+  setGrpButtons();buildChips();draw();
+}
+return{init};
+})();
+
+// ══════════ 탭 전환 (5개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),C:document.getElementById("secC")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),C:document.getElementById("navC")};
 const band=document.getElementById("band"),bandTxt=document.getElementById("bandTxt"),stamp=document.getElementById("stamp");
 let fxStarted=false;
 function show(k){
   Object.keys(secs).forEach(x=>{secs[x].style.display=(x===k?"":"none");navs[x].classList.toggle("on",x===k);});
+  const gen=window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"";
   if(k==="R"){stamp.textContent="01 기준금리 · 확인일 2026-07-07 · 내장 데이터";band.style.background="var(--green)";bandTxt.textContent="MACRO INDEX DASHBOARD";}
   if(k==="F"){stamp.textContent="02 환율 · ECB 일별 기준환율";band.style.background="var(--navy)";bandTxt.textContent="FX RATES DASHBOARD";if(!fxStarted){fxStarted=true;FX.init();}}
-  if(k==="I"){stamp.textContent="03 종합 주가지수 · 수집 파일 기반"+(window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"");band.style.background="#A63D40";bandTxt.textContent="EQUITY INDEX DASHBOARD";IDX.init();}
-  if(k==="S"){stamp.textContent="04 산업별 주가지수 · 수집 파일 기반"+(window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"");band.style.background="#6B4E9B";bandTxt.textContent="SECTOR INDEX DASHBOARD";SEC.init();}
+  if(k==="I"){stamp.textContent="03 종합 주가지수 · 수집 파일 기반"+gen;band.style.background="#A63D40";bandTxt.textContent="EQUITY INDEX DASHBOARD";IDX.init();}
+  if(k==="S"){stamp.textContent="04 산업별 주가지수 · 수집 파일 기반"+gen;band.style.background="#6B4E9B";bandTxt.textContent="SECTOR INDEX DASHBOARD";SEC.init();}
+  if(k==="C"){stamp.textContent="05 원자재 · 수집 파일 기반"+gen;band.style.background="#8A6F1B";bandTxt.textContent="COMMODITY DASHBOARD";CMD.init();}
 }
 window.IN_showTab=show;
-navs.R.onclick=()=>show("R");navs.F.onclick=()=>show("F");navs.I.onclick=()=>show("I");navs.S.onclick=()=>show("S");
+navs.R.onclick=()=>show("R");navs.F.onclick=()=>show("F");navs.I.onclick=()=>show("I");navs.S.onclick=()=>show("S");navs.C.onclick=()=>show("C");
 })();
 
 </script>

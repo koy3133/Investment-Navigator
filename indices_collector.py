@@ -30,13 +30,15 @@ def downsample(pts):
     return [p for p in pts if p[0] < cutoff][::5] + [p for p in pts if p[0] >= cutoff]
 
 
-def add(key, label, group, s):
+def add(key, label, group, s, unit=None):
     s = s.dropna()
-    pts = [[d.strftime("%Y-%m-%d"), round(float(v), 2)] for d, v in s.items()]
+    pts = [[d.strftime("%Y-%m-%d"), round(float(v), 4)] for d, v in s.items()]
     if not pts:
         print(f"[SKIP] {key} {label}: 데이터 없음")
         return False
     series[key] = {"label": label, "group": group, "pts": downsample(pts)}
+    if unit:
+        series[key]["unit"] = unit
     print(f"[OK]   {key} {label}: {len(series[key]['pts'])}점")
     return True
 
@@ -73,6 +75,29 @@ try:
     }.items():
         try:
             add(k, lb, "US_SECTOR", yff(tic))
+        except Exception as e:
+            print(f"[FAIL] {k}: {e}")
+    # ── 원자재 (선물 근월물 / 우라늄은 실물 신탁 대용) ──
+    cmd = {
+        "CMD_WTI":    ("CL=F",  "원유 WTI",        "CMD_ENE", "달러/배럴"),
+        "CMD_BRENT":  ("BZ=F",  "원유 브렌트",     "CMD_ENE", "달러/배럴"),
+        "CMD_NG":     ("NG=F",  "천연가스",        "CMD_ENE", "달러/MMBtu"),
+        "CMD_GOLD":   ("GC=F",  "금",              "CMD_PME", "달러/온스"),
+        "CMD_SILVER": ("SI=F",  "은",              "CMD_PME", "달러/온스"),
+        "CMD_PLAT":   ("PL=F",  "백금",            "CMD_PME", "달러/온스"),
+        "CMD_PALL":   ("PA=F",  "팔라듐",          "CMD_PME", "달러/온스"),
+        "CMD_COPPER": ("HG=F",  "구리",            "CMD_IND", "달러/파운드"),
+        "CMD_ALUM":   ("ALI=F", "알루미늄(참고)",  "CMD_IND", "달러/톤"),
+        "CMD_URAN":   ("SRUUF", "우라늄(신탁)",    "CMD_IND", "달러/주"),
+        "CMD_CORN":   ("ZC=F",  "옥수수",          "CMD_AGR", "센트/부셸"),
+        "CMD_WHEAT":  ("ZW=F",  "밀",              "CMD_AGR", "센트/부셸"),
+        "CMD_SOY":    ("ZS=F",  "대두",            "CMD_AGR", "센트/부셸"),
+        "CMD_SUGAR":  ("SB=F",  "설탕",            "CMD_AGR", "센트/파운드"),
+        "CMD_COFFEE": ("KC=F",  "커피",            "CMD_AGR", "센트/파운드"),
+    }
+    for k, (tic, lb, grp, unit) in cmd.items():
+        try:
+            add(k, lb, grp, yff(tic), unit)
         except Exception as e:
             print(f"[FAIL] {k}: {e}")
 except Exception as e:
