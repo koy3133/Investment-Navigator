@@ -116,6 +116,53 @@ try:
 except Exception as e:
     print("[해외 수집 실패]", e)
 
+# ──────────────── 채권·경제지표·부동산 (FRED CSV, 키 불필요) ────────────────
+try:
+    import io
+    import requests
+
+    def fred_series(sid, trim=True):
+        url = "https://fred.stlouisfed.org/graph/fredgraph.csv?id=" + sid
+        r = requests.get(url, timeout=60)
+        r.raise_for_status()
+        df = pd.read_csv(io.StringIO(r.text))
+        df.columns = ["date", "value"]
+        df["value"] = pd.to_numeric(df["value"], errors="coerce")
+        df = df.dropna()
+        s = pd.Series(df["value"].values, index=pd.to_datetime(df["date"]))
+        if trim:
+            s = s[s.index >= pd.Timestamp(START)]
+        return s
+
+    def yoy(s):
+        out = (s.pct_change(12) * 100).dropna()
+        return out[out.index >= pd.Timestamp(START)]
+
+    fred_items = [
+        ("BOND_US2Y",   "DGS2",            "미국 국채 2년",              "BOND",   "%",    None),
+        ("BOND_US10Y",  "DGS10",           "미국 국채 10년",             "BOND",   "%",    None),
+        ("BOND_US30Y",  "DGS30",           "미국 국채 30년",             "BOND",   "%",    None),
+        ("BOND_SPREAD", "T10Y2Y",          "미 장단기금리차(10y-2y)",    "BOND",   "%p",   None),
+        ("BOND_KR10Y",  "IRLTLT01KRM156N", "한국 국채 10년(월별)",       "BOND",   "%",    None),
+        ("ECON_US_CPI", "CPIAUCSL",        "미국 CPI(전년비)",           "ECON",   "%",    "yoy"),
+        ("ECON_US_CORE","CPILFESL",        "미국 근원 CPI(전년비)",      "ECON",   "%",    "yoy"),
+        ("ECON_US_UNEMP","UNRATE",         "미국 실업률",                "ECON",   "%",    None),
+        ("ECON_KR_CPI", "CPALTT01KRM659N", "한국 CPI(전년비)",           "ECON",   "%",    None),
+        ("RE_CS",       "CSUSHPINSA",      "미국 주택가격(케이스-실러)", "REALTY", "지수", None),
+        ("RE_MORT",     "MORTGAGE30US",    "미국 모기지 30년 금리",      "REALTY", "%",    None),
+        ("RE_KR",       "QKRR628BIS",      "한국 실질 주택가격(분기)",   "REALTY", "지수", None),
+    ]
+    for k, sid, lb, grp, unit, tf in fred_items:
+        try:
+            s = fred_series(sid, trim=(tf is None))
+            if tf == "yoy":
+                s = yoy(s)
+            add(k, lb, grp, s, unit)
+        except Exception as e:
+            print(f"[FAIL] {k}({sid}): {e}")
+except Exception as e:
+    print("[FRED 수집 실패]", e)
+
 # ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
 if KRX_READY:
     try:
