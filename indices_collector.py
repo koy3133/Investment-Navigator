@@ -139,6 +139,7 @@ if KRX_READY:
             except Exception as e:
                 print(f"[{market} 업종 목록 조회 실패]", e)
                 return
+            miss = []
             for key, kw in want.items():
                 kwn = kw.replace("·", "").replace(" ", "")
                 hit = [tk for tk, nm in names.items()
@@ -151,19 +152,23 @@ if KRX_READY:
                     except Exception as e:
                         print(f"[FAIL] {key}({kw}): {e}")
                 else:
+                    miss.append(kw)
                     print(f"[MISS] {market} {kw}: 일치 업종지수 없음")
+            if miss:
+                print(f"[참고] {market} 업종지수 전체 목록: "
+                      + ", ".join(sorted(set(names.values()))))
 
         collect_sectors("KOSPI", "KR_SECTOR", {
             "KR_ELEC": "전기전자", "KR_CHEM": "화학", "KR_FIN": "금융",
-            "KR_AUTO": "운수장비", "KR_STEEL": "철강", "KR_CONST": "건설",
-            "KR_RETAIL": "유통", "KR_PHARM": "의약품", "KR_TELCO": "통신",
+            "KR_AUTO": "운송장비", "KR_STEEL": "금속", "KR_CONST": "건설",
+            "KR_RETAIL": "유통", "KR_PHARM": "제약", "KR_TELCO": "통신",
             "KR_FOOD": "음식료",
         }, "")
 
         collect_sectors("KOSDAQ", "KQ_SECTOR", {
-            "KQ_PHARM": "제약", "KQ_ITHW": "IT H", "KQ_ITSW": "IT S",
+            "KQ_PHARM": "제약", "KQ_ELEC": "전기전자", "KQ_MED": "의료정밀",
             "KQ_FIN": "금융", "KQ_RETAIL": "유통", "KQ_CHEM": "화학",
-            "KQ_MACH": "기계", "KQ_MFG": "제조", "KQ_COMM": "통신방송",
+            "KQ_MACH": "기계", "KQ_MFG": "제조", "KQ_TRAN": "운송장비",
             "KQ_ENT": "오락",
         }, "")
     except Exception as e:
