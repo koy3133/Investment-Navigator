@@ -147,7 +147,6 @@ try:
         ("ECON_US_CPI", "CPIAUCSL",        "미국 CPI(전년비)",           "ECON",   "%",    "yoy"),
         ("ECON_US_CORE","CPILFESL",        "미국 근원 CPI(전년비)",      "ECON",   "%",    "yoy"),
         ("ECON_US_UNEMP","UNRATE",         "미국 실업률",                "ECON",   "%",    None),
-        ("ECON_KR_CPI", "CPALTT01KRM659N", "한국 CPI(전년비)",           "ECON",   "%",    None),
         ("RE_CS",       "CSUSHPINSA",      "미국 주택가격(케이스-실러)", "REALTY", "지수", None),
         ("RE_MORT",     "MORTGAGE30US",    "미국 모기지 30년 금리",      "REALTY", "%",    None),
         ("RE_KR",       "QKRR628BIS",      "한국 실질 주택가격(분기)",   "REALTY", "지수", None),
@@ -162,6 +161,30 @@ try:
             print(f"[FAIL] {k}({sid}): {e}")
 except Exception as e:
     print("[FRED 수집 실패]", e)
+
+# ──────────────── 한국 CPI (한국은행 ECOS, 인증키 필요) ────────────────
+ECOS_KEY = os.getenv("ECOS_KEY")
+if ECOS_KEY:
+    try:
+        import requests
+        f_m = (END - dt.timedelta(days=365 * (YEARS + 2))).strftime("%Y%m")
+        t_m = END.strftime("%Y%m")
+        url = ("https://ecos.bok.or.kr/api/StatisticSearch/" + ECOS_KEY
+               + "/json/kr/1/1000/901Y009/M/" + f_m + "/" + t_m + "/0")
+        js = requests.get(url, timeout=60).json()
+        rows = js.get("StatisticSearch", {}).get("row", [])
+        if not rows:
+            raise RuntimeError(str(js.get("RESULT", js))[:200])
+        s = pd.Series({pd.Timestamp(r["TIME"][:4] + "-" + r["TIME"][4:6] + "-01"):
+                       float(r["DATA_VALUE"]) for r in rows}).sort_index()
+        s = (s.pct_change(12) * 100).dropna()
+        s = s[s.index >= pd.Timestamp(START)]
+        add("ECON_KR_CPI", "한국 CPI(전년비)", "ECON", s, "%")
+    except Exception as e:
+        print(f"[FAIL] ECON_KR_CPI(ECOS): {e}")
+else:
+    print("[안내] ECOS_KEY 미설정 → 한국 CPI는 건너뜁니다.")
+    print("       ecos.bok.or.kr 무료 인증키 발급 후 ECOS_KEY 설정 시 수집됩니다.")
 
 # ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
 if KRX_READY:
