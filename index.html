@@ -15,9 +15,17 @@
   *{box-sizing:border-box}html,body{margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.45;-webkit-font-smoothing:antialiased;min-height:100vh}
   .frame{max-width:1180px;margin:0 auto;padding:22px 18px 46px}
-  .layout{display:grid;grid-template-columns:1fr 54px;gap:12px}
-  .band{border-radius:10px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;min-height:640px}
-  .band span{writing-mode:vertical-rl;font-family:var(--disp);font-weight:700;font-size:22px;letter-spacing:.28em;color:#F3EFE4}
+  .layout{display:grid;grid-template-columns:1fr;gap:12px}
+  .hband{border-radius:8px;box-shadow:var(--shadow);display:flex;align-items:center;padding:9px 14px;margin-bottom:12px}
+  .hband span{font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.28em;color:#F3EFE4}
+  .pnav .gbtn{font-weight:700}
+  .pnav.sub{margin-top:-6px}
+  .pnav.sub button{font-size:11.5px;padding:5px 11px}
+  .hero{display:none;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+  .hero .hv{font-family:var(--mono);font-size:clamp(26px,4vw,40px);font-weight:700;letter-spacing:-.02em;line-height:1}
+  .hero .hu{font-size:13px;color:var(--muted)}
+  .hero .hl{font-size:13px;color:var(--muted)}
+  .hero .hc{font-family:var(--mono);font-size:13px;font-weight:700}
   .head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 16px;margin-bottom:6px}
   .brand{font-family:var(--disp);font-weight:700;font-size:clamp(20px,3.4vw,28px);letter-spacing:-.01em}
   .brand em{font-style:normal;color:var(--green)}
@@ -44,7 +52,9 @@
   .custom{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-left:auto}
   .custom input[type=date]{font-family:var(--mono);font-size:12px;color:var(--ink);background:#F4F2EB;border:1px solid var(--panel-line);border-radius:7px;padding:5px 8px}
   .custom .go{font-family:var(--mono);font-size:12px;color:#fff;background:var(--orange);border:1px solid var(--orange);border-radius:7px;padding:6px 12px;cursor:pointer;font-weight:700}
-  .main{display:grid;grid-template-columns:280px 1fr;gap:12px;margin-bottom:12px}
+  .main{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px}
+  .main > .panel:first-child{order:2}
+  .main > .panel:first-child svg{max-width:460px}
   .panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:10px;box-shadow:var(--shadow);padding:14px}
   .ptitle{font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);margin:0 0 10px}
   .chart-wrap{position:relative}
@@ -71,7 +81,7 @@
   .qm{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid var(--faint);color:var(--faint);font-size:9px;font-weight:700;cursor:help;vertical-align:1px;margin-left:2px}
   .qm:hover{border-color:var(--green);color:var(--green)}
   button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
-  @media (max-width:920px){.kpis{grid-template-columns:repeat(4,1fr)}.main{grid-template-columns:1fr}.layout{grid-template-columns:1fr}.band{display:none}}
+  @media (max-width:920px){.kpis{grid-template-columns:repeat(4,1fr)}}
   @media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.custom{margin-left:0}}
 </style>
 </head>
@@ -81,17 +91,25 @@
     <div class="brand">Investment <em>Navigator</em></div>
     <div class="stamp" id="stamp">01 기준금리 · 확인일 2026-07-07 · 내장 데이터</div>
   </header>
-  <nav class="pnav">
-    <button id="navR" class="on">01 기준금리</button>
-    <button id="navF">02 환율</button>
-    <button id="navI">03 종합 주가지수</button>
-    <button id="navS">04 산업별 주가지수</button>
-    <button id="navC">05 원자재</button>
-    <button id="navX">06 가상자산</button>
-    <button id="navB">07 채권 금리</button>
-    <button id="navE">08 경제지표</button>
-    <button id="navP">09 부동산</button>
+  <nav class="pnav" id="gnav">
+    <button class="gbtn on" data-g="A">매크로·정책</button>
+    <button class="gbtn" data-g="B">금리·환율</button>
+    <button class="gbtn" data-g="C">전통자산</button>
+    <button class="gbtn" data-g="D">대체자산</button>
   </nav>
+  <nav class="pnav sub" id="snav">
+    <button id="navE" data-g="A">08 경제지표</button>
+    <button id="navR" data-g="A">01 기준금리</button>
+    <button id="navB" data-g="B">07 채권 금리</button>
+    <button id="navF" data-g="B">02 환율</button>
+    <button id="navL" data-g="B">10 유동성</button>
+    <button id="navI" data-g="C">03 종합 주가지수</button>
+    <button id="navS" data-g="C">04 산업별 주가지수</button>
+    <button id="navC" data-g="D">05 원자재</button>
+    <button id="navP" data-g="D">09 부동산</button>
+    <button id="navX" data-g="D">06 가상자산</button>
+  </nav>
+  <div class="hband" id="band" style="background:var(--green)"><span id="bandTxt">MACRO INDEX DASHBOARD</span></div>
 
   <div class="layout">
     <div>
@@ -264,6 +282,7 @@
         </div>
         <div class="panel">
           <h2 class="ptitle" id="titleS">산업별 지수 비교</h2>
+          <div class="hero" id="heroS"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartS" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
             <div class="tip" id="tipS"></div>
@@ -310,6 +329,7 @@
         </div>
         <div class="panel">
           <h2 class="ptitle" id="titleC">원자재 비교</h2>
+          <div class="hero" id="heroC"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartC" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
             <div class="tip" id="tipC"></div>
@@ -350,6 +370,7 @@
         </div>
         <div class="panel">
           <h2 class="ptitle" id="titleX">가상자산 비교</h2>
+          <div class="hero" id="heroX"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartX" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
             <div class="tip" id="tipX"></div>
@@ -390,6 +411,7 @@
         </div>
         <div class="panel">
           <h2 class="ptitle" id="titleB">추이</h2>
+          <div class="hero" id="heroB"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartB" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
             <div class="tip" id="tipB"></div>
@@ -430,6 +452,7 @@
         </div>
         <div class="panel">
           <h2 class="ptitle" id="titleE">추이</h2>
+          <div class="hero" id="heroE"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartE" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
             <div class="tip" id="tipE"></div>
@@ -470,6 +493,7 @@
         </div>
         <div class="panel">
           <h2 class="ptitle" id="titleP">추이</h2>
+          <div class="hero" id="heroP"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartP" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
             <div class="tip" id="tipP"></div>
@@ -485,8 +509,48 @@
         </footer>
       </section>
 
+      <!-- ══════════ 10 유동성 ══════════ -->
+      <section id="secL" style="display:none">
+        <div class="controls" id="chipsL"></div>
+        <div class="controls" id="rangesL">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn" data-r="1y">1년</button>
+          <button class="rbtn on" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0L" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1L" aria-label="종료일">
+            <button class="go" id="goL">적용</button>
+          </div>
+        </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">구간 변동 (%p)</h2>
+          <svg id="barsL" viewBox="0 0 260 300" style="width:100%;display:block"></svg>
+          <div class="note">막대를 누르면 해당 지표가 선택됩니다</div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleL">추이</h2>
+          <div class="hero" id="heroL"></div>
+          <div class="chart-wrap">
+            <svg class="big" id="chartL" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipL"></div>
+          </div>
+          <div class="legend" id="legL"></div>
+          <div class="note" id="noteL"></div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 미국 M2·연준 총자산은 FRED, 한국 M2(말잔)는 한국은행 ECOS. 단위가 달라 모두 전년 대비 증가율(%)로 변환해 비교합니다.</div>
+          <div><b>해석</b> · 통화량 증가율 반등은 위험자산에 우호적 유동성 환경, 연준 총자산 감소(음수)는 양적긴축 진행으로 해석되곤 합니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
     </div>
-    <aside class="band" id="band" style="background:var(--green)" aria-hidden="true"><span id="bandTxt">MACRO INDEX DASHBOARD</span></aside>
   </div>
 </div>
 
@@ -584,7 +648,11 @@ ECON_KR_CPI:{t:"한국 CPI(전년비)",b:"한국은행 ECOS 공식 통계(통계
 G_RE:{t:"부동산",b:"주택가격과 모기지 금리로 부동산 사이클을 추적합니다. 가격지수는 발표 시차가 커(월~분기) 시장 변화가 늦게 반영됩니다."},
 RE_CS:{t:"미국 주택가격(케이스-실러)",b:"S&P 전국 지수(월별, 약 2개월 시차). 반복매매 방식으로 실거래 기반이며, 모기지 금리와 재고가 주요 변수입니다."},
 RE_MORT:{t:"미국 모기지 30년 금리",b:"Freddie Mac 주간 조사(FRED). 미 국채 10년에 연동되며 주택 구매력과 거래량에 직결됩니다."},
-RE_KR:{t:"한국 실질 주택가격",b:"BIS 분기 지수로 물가를 뺀 실질 기준이라 체감 명목 가격과 다르고 시차가 큽니다. 장기 추세 비교용으로 활용하십시오."}
+RE_KR:{t:"한국 실질 주택가격",b:"BIS 분기 지수로 물가를 뺀 실질 기준이라 체감 명목 가격과 다르고 시차가 큽니다. 장기 추세 비교용으로 활용하십시오."},
+G_LIQ:{t:"유동성",b:"시중 통화량과 중앙은행 자산으로 자금의 팽창·수축을 추적합니다. 유동성 확장기는 위험자산에 우호적, 수축기는 부담 요인으로 해석되곤 합니다."},
+LIQ_USM2:{t:"미국 M2(전년비)",b:"FRED(M2SL) 월별을 전년동월비로 변환. 팬데믹기 급증 후 2022~23년 사상 첫 역성장을 기록했으며, 물가·자산가격의 선행 신호로 참고됩니다."},
+LIQ_KRM2:{t:"한국 M2(전년비)",b:"한국은행 ECOS(광의통화 M2 말잔) 월별을 전년동월비로 변환. 대출·부동산 경기와 연동성이 높습니다. ECOS 인증키 필요."},
+LIQ_FED:{t:"연준 총자산(전년비)",b:"FRED(WALCL) 주간 대차대조표 총자산의 전년동주비. 양수 확대는 QE(완화), 음수는 QT(긴축) 국면을 뜻하며 글로벌 유동성의 원천 지표입니다."}
 };
 (function(){
   const wrap=document.getElementById("infoWrap");
@@ -1369,6 +1437,7 @@ function draw(){
       return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
     }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
     document.getElementById("noteS").textContent="각 업종을 구간 시작일=100으로 재계산한 상대 성과입니다.";
+    window.IN_hero("S",null);
   }else{
     const d=s[sel];
     document.getElementById("titleS").textContent=d.label+" 추이";
@@ -1378,6 +1447,7 @@ function draw(){
     if(w.length){
       const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
       document.getElementById("legS").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+      window.IN_hero("S",'<span class="hv">'+fmtN(w[w.length-1][1])+'</span><span class="hl">'+d.label+'</span><span class="hc '+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>');
     }else document.getElementById("legS").innerHTML="";
     document.getElementById("noteS").textContent=(grp==="US"?"S&P 섹터는 SPDR 섹터 ETF 종가 기준입니다.":"");
   }
@@ -1483,6 +1553,7 @@ function draw(){
       return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
     }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
     document.getElementById("noteC").textContent="각 품목을 구간 시작일=100으로 재계산한 상대 성과입니다. 품목별 단위가 달라 절대 가격은 개별 선택 시 표시됩니다.";
+    window.IN_hero("C",null);
   }else{
     const d=s[sel],u=d.unit||"";
     document.getElementById("titleC").textContent=d.label+" 추이"+(u?" ("+u+")":"");
@@ -1492,6 +1563,7 @@ function draw(){
     if(w.length){
       const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
       document.getElementById("legC").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+(u?' '+u:'')+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+      window.IN_hero("C",'<span class="hv">'+fmtN(w[w.length-1][1])+'</span>'+(u?'<span class="hu">'+u+'</span>':'')+'<span class="hl">'+d.label+'</span><span class="hc '+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>');
     }else document.getElementById("legC").innerHTML="";
     document.getElementById("noteC").textContent=(sel==="CMD_ALUM"?"알루미늄은 거래량이 적어 가격 품질이 낮습니다(참고용).":sel==="CMD_URAN"?"실물 우라늄 보유 신탁(Sprott) 주가 대용이며 현물가와 괴리될 수 있습니다.":"");
   }
@@ -1591,6 +1663,7 @@ function draw(){
       return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
     }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
     document.getElementById("noteX").textContent="각 코인을 구간 시작일=100으로 재계산한 상대 성과입니다. 24시간·주말 거래로 일별 종가는 UTC 기준 스냅샷입니다.";
+    window.IN_hero("X",null);
   }else{
     const d=s[sel],u=d.unit||"";
     document.getElementById("titleX").textContent=d.label+" 추이"+(u?" ("+u+")":"");
@@ -1600,6 +1673,7 @@ function draw(){
     if(w.length){
       const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
       document.getElementById("legX").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+(u?' '+u:'')+'</span><span class="'+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+      window.IN_hero("X",'<span class="hv">'+fmtN(w[w.length-1][1])+'</span>'+(u?'<span class="hu">'+u+'</span>':'')+'<span class="hl">'+d.label+'</span><span class="hc '+(chg>0?"up":chg<0?"down":"flat")+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>');
     }else document.getElementById("legX").innerHTML="";
     document.getElementById("noteX").textContent="";
   }
@@ -1700,6 +1774,7 @@ function draw(){
       return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
     }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
     $("note").textContent=cfg.allNote||"";
+    window.IN_hero(sfx,null);
   }else{
     const d=s[sel],u=d.unit||"";
     $("title").textContent=d.label+" 추이"+(u?" ("+u+")":"");
@@ -1713,6 +1788,7 @@ function draw(){
       else{const pc=(last-first)/first*100;chgTxt='구간 변동 '+(pc>0?"+":"")+pc.toFixed(2)+"%";}
       const cls=(last-first)>0?"up":(last-first)<0?"down":"flat";
       $("leg").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(last)+(u?' '+u:'')+'</span><span class="'+cls+'">'+chgTxt+'</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+      window.IN_hero(sfx,'<span class="hv">'+fmtN(last)+'</span>'+(u?'<span class="hu">'+u+'</span>':'')+'<span class="hl">'+d.label+'</span><span class="hc '+cls+'">'+chgTxt+'</span>');
     }else $("leg").innerHTML="";
     $("note").textContent=(cfg.itemNote&&cfg.itemNote[sel])||"";
   }
@@ -1763,14 +1839,31 @@ const RLT=IN_simpleTab("P",{group:"REALTY",name:"부동산",mode:"idx",infoKey:"
   itemNote:{RE_CS:"케이스-실러 지수는 약 2개월 발표 시차가 있습니다.",
             RE_KR:"BIS 분기·실질(물가 조정) 지수라 체감 명목 가격과 다르며 시차가 큽니다. 부동산원 실거래 지수는 별도 API 키로 추후 추가 가능합니다."}});
 
-// ══════════ 탭 전환 (9개 탭) ══════════
+const LIQ=IN_simpleTab("L",{group:"LIQ",name:"유동성",mode:"raw",infoKey:"G_LIQ",
+  allNote:"통화량과 연준 자산의 전년 대비 증가율(%)을 겹쳐 표시합니다. 증가율 반등은 유동성 확장, 하락은 긴축 국면으로 해석되곤 합니다.",
+  itemNote:{LIQ_FED:"주간 수치의 전년동주비입니다. 증가율이 음수면 양적긴축(QT)으로 자산이 줄고 있다는 뜻입니다.",
+            LIQ_KRM2:"한국은행 ECOS 기준(M2 말잔). 수집에는 ECOS 인증키가 필요합니다."}});
+
+window.IN_hero=function(sfx,html){
+  const el=document.getElementById("hero"+sfx);
+  if(!el)return;
+  if(!html){el.style.display="none";el.innerHTML="";return;}
+  el.style.display="flex";el.innerHTML=html;
+};
+
+// ══════════ 탭 전환 (4대 그룹 · 10개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),P:document.getElementById("secP")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),P:document.getElementById("navP")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),P:document.getElementById("secP"),L:document.getElementById("secL")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),P:document.getElementById("navP"),L:document.getElementById("navL")};
 const band=document.getElementById("band"),bandTxt=document.getElementById("bandTxt"),stamp=document.getElementById("stamp");
+const GROUPS={A:["E","R"],B:["B","F","L"],C:["I","S"],D:["C","P","X"]};
+function groupOf(k){for(const g in GROUPS){if(GROUPS[g].indexOf(k)>=0)return g;}return "A";}
 let fxStarted=false;
 function show(k){
   Object.keys(secs).forEach(x=>{secs[x].style.display=(x===k?"":"none");navs[x].classList.toggle("on",x===k);});
+  const g=groupOf(k);
+  document.querySelectorAll("#gnav .gbtn").forEach(b=>b.classList.toggle("on",b.getAttribute("data-g")===g));
+  document.querySelectorAll("#snav button").forEach(b=>{b.style.display=(b.getAttribute("data-g")===g)?"":"none";});
   const gen=window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"";
   if(k==="R"){stamp.textContent="01 기준금리 · 확인일 2026-07-07 · 내장 데이터";band.style.background="var(--green)";bandTxt.textContent="MACRO INDEX DASHBOARD";}
   if(k==="F"){stamp.textContent="02 환율 · ECB 일별 기준환율";band.style.background="var(--navy)";bandTxt.textContent="FX RATES DASHBOARD";if(!fxStarted){fxStarted=true;FX.init();}}
@@ -1779,11 +1872,14 @@ function show(k){
   if(k==="C"){stamp.textContent="05 원자재 · 수집 파일 기반"+gen;band.style.background="#8A6F1B";bandTxt.textContent="COMMODITY DASHBOARD";CMD.init();}
   if(k==="X"){stamp.textContent="06 가상자산 · 수집 파일 기반"+gen;band.style.background="#3D8A8C";bandTxt.textContent="CRYPTO DASHBOARD";CRY.init();}
   if(k==="B"){stamp.textContent="07 채권 금리 · 수집 파일 기반(FRED)"+gen;band.style.background="#2F4B7C";bandTxt.textContent="BOND YIELD DASHBOARD";BND.init();}
-  if(k==="E"){stamp.textContent="08 경제지표 · 수집 파일 기반(FRED)"+gen;band.style.background="#B4441B";bandTxt.textContent="MACRO DATA DASHBOARD";ECO.init();}
+  if(k==="E"){stamp.textContent="08 경제지표 · 수집 파일 기반(FRED·ECOS)"+gen;band.style.background="#B4441B";bandTxt.textContent="MACRO DATA DASHBOARD";ECO.init();}
   if(k==="P"){stamp.textContent="09 부동산 · 수집 파일 기반(FRED·BIS)"+gen;band.style.background="#5E6A72";bandTxt.textContent="REAL ESTATE DASHBOARD";RLT.init();}
+  if(k==="L"){stamp.textContent="10 유동성 · 수집 파일 기반(FRED·ECOS)"+gen;band.style.background="#4E8F79";bandTxt.textContent="LIQUIDITY DASHBOARD";LIQ.init();}
 }
 window.IN_showTab=show;
 Object.keys(navs).forEach(k=>{navs[k].onclick=()=>show(k);});
+document.querySelectorAll("#gnav .gbtn").forEach(b=>{b.onclick=()=>show(GROUPS[b.getAttribute("data-g")][0]);});
+show("E");
 })();
 
 </script>

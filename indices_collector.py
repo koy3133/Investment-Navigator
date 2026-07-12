@@ -134,8 +134,8 @@ try:
             s = s[s.index >= pd.Timestamp(START)]
         return s
 
-    def yoy(s):
-        out = (s.pct_change(12) * 100).dropna()
+    def yoy(s, n=12):
+        out = (s.pct_change(n) * 100).dropna()
         return out[out.index >= pd.Timestamp(START)]
 
     fred_items = [
@@ -150,12 +150,14 @@ try:
         ("RE_CS",       "CSUSHPINSA",      "미국 주택가격(케이스-실러)", "REALTY", "지수", None),
         ("RE_MORT",     "MORTGAGE30US",    "미국 모기지 30년 금리",      "REALTY", "%",    None),
         ("RE_KR",       "QKRR628BIS",      "한국 실질 주택가격(분기)",   "REALTY", "지수", None),
+        ("LIQ_USM2",    "M2SL",            "미국 M2(전년비)",            "LIQ",    "%",    "yoy"),
+        ("LIQ_FED",     "WALCL",           "연준 총자산(전년비)",        "LIQ",    "%",    "yoy52"),
     ]
     for k, sid, lb, grp, unit, tf in fred_items:
         try:
             s = fred_series(sid, trim=(tf is None))
-            if tf == "yoy":
-                s = yoy(s)
+            if tf:
+                s = yoy(s, 52 if tf == "yoy52" else 12)
             add(k, lb, grp, s, unit)
         except Exception as e:
             print(f"[FAIL] {k}({sid}): {e}")
@@ -182,6 +184,20 @@ if ECOS_KEY:
         add("ECON_KR_CPI", "한국 CPI(전년비)", "ECON", s, "%")
     except Exception as e:
         print(f"[FAIL] ECON_KR_CPI(ECOS): {e}")
+    try:
+        url2 = ("https://ecos.bok.or.kr/api/StatisticSearch/" + ECOS_KEY
+                + "/json/kr/1/1000/101Y003/M/" + f_m + "/" + t_m + "/BBHA00")
+        js2 = requests.get(url2, timeout=60).json()
+        rows2 = js2.get("StatisticSearch", {}).get("row", [])
+        if not rows2:
+            raise RuntimeError(str(js2.get("RESULT", js2))[:200])
+        s2 = pd.Series({pd.Timestamp(r["TIME"][:4] + "-" + r["TIME"][4:6] + "-01"):
+                        float(r["DATA_VALUE"]) for r in rows2}).sort_index()
+        s2 = (s2.pct_change(12) * 100).dropna()
+        s2 = s2[s2.index >= pd.Timestamp(START)]
+        add("LIQ_KRM2", "한국 M2(전년비)", "LIQ", s2, "%")
+    except Exception as e:
+        print(f"[FAIL] LIQ_KRM2(ECOS): {e}")
 else:
     print("[안내] ECOS_KEY 미설정 → 한국 CPI는 건너뜁니다.")
     print("       ecos.bok.or.kr 무료 인증키 발급 후 ECOS_KEY 설정 시 수집됩니다.")
