@@ -27,6 +27,7 @@ jobs:
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
           ECOS_KEY: ${{ secrets.ECOS_KEY }}
+          REB_KEY: ${{ secrets.REB_KEY }}
         run: python indices_collector.py
 
       - name: 데이터 커밋
