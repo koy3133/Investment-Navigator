@@ -167,7 +167,6 @@ try:
         ("LIQ_US_CB",   "WALCL",           "연준 총자산(전년비)",        "LIQ",    "%",    "yoy52"),
         ("LIQ_EA_CB",   "ECBASSETSW",      "ECB 총자산(전년비)",         "LIQ",    "%",    "yoy52"),
         ("LIQ_JP_CB",   "JPNASSETS",       "일본은행 총자산(전년비)",    "LIQ",    "%",    "yoy"),
-        ("ECON_EA_CPI", "CP0000EZ19M086NEA", "유로존 HICP(전년비)",      "ECON",   "%",    "yoy"),
         ("RE_EA_BIS",   "QXMR628BIS",      "유로존 주택가격(BIS 분기)",  "REALTY", "지수", None),
         ("RE_UK_BIS",   "QGBR628BIS",      "영국 주택가격(BIS 분기)",    "REALTY", "지수", None),
         ("RE_CN_BIS",   "QCNR628BIS",      "중국 주택가격(BIS 분기)",    "REALTY", "지수", None),
@@ -181,10 +180,22 @@ try:
             add(k, lb, grp, s, unit)
         except Exception as e:
             print(f"[FAIL] {k}({sid}): {e}")
+
+    ea_err = ""
+    for sid in ("CP0000EZ19M086NEST", "CP0000EZ19M086NEA"):
+        try:
+            s = yoy(fred_series(sid, trim=False))
+            if add("ECON_EA_CPI", "유로존 HICP(전년비)", "ECON", s, "%"):
+                print(f"       (유로존 HICP: {sid})")
+                break
+        except Exception as e:
+            ea_err = str(e)[:120]
+    else:
+        print(f"[FAIL] ECON_EA_CPI: {ea_err}")
 except Exception as e:
     print("[FRED 수집 실패]", e)
 
-# ──────────────── 한국 지표 (한국은행 ECOS, 인증키 필요) ────────────────
+# ──────────────── 한국·국제 지표 (한국은행 ECOS, 인증키 필요) ────────────────
 ECOS_KEY = os.getenv("ECOS_KEY")
 if ECOS_KEY:
     import requests
@@ -199,8 +210,8 @@ if ECOS_KEY:
     f_m = (END - dt.timedelta(days=365 * (YEARS + 2))).strftime("%Y%m")
     t_m = END.strftime("%Y%m")
 
-    def ecos_series(stat, item):
-        rows = ecos_rows(f"StatisticSearch/{ECOS_KEY}/json/kr/1/2000/{stat}/M/{f_m}/{t_m}/{item}")
+    def ecos_series(stat, item_path):
+        rows = ecos_rows(f"StatisticSearch/{ECOS_KEY}/json/kr/1/2000/{stat}/M/{f_m}/{t_m}/{item_path}")
         if not rows:
             return None
         return pd.Series({pd.Timestamp(r["TIME"][:4] + "-" + r["TIME"][4:6] + "-01"):
@@ -209,103 +220,163 @@ if ECOS_KEY:
     def ecos_items(stat):
         return ecos_rows(f"StatisticItemList/{ECOS_KEY}/json/kr/1/1000/{stat}")
 
-    def ecos_find_item(stat, kws):
-        for r in ecos_items(stat):
-            nm = str(r.get("ITEM_NAME", "")).replace(" ", "")
-            if all(k in nm for k in kws):
-                return r.get("ITEM_CODE"), nm
-        return None, None
+    _c = {"tables": None}
 
-    def kr_yoy_trim(s, n=12):
+    def ecos_tables():
+        if _c["tables"] is None:
+            out = []
+            for p in range(8):
+                rows = ecos_rows(f"StatisticTableList/{ECOS_KEY}/json/kr/{p*1000+1}/{(p+1)*1000}")
+                if not rows:
+                    break
+                out += rows
+            _c["tables"] = out
+        return _c["tables"]
+
+    def ecos_find_stat(kws):
+        hits = []
+        for r in ecos_tables():
+            nm = str(r.get("STAT_NAME", ""))
+            if all(k in nm for k in kws) and str(r.get("SRCH_YN", "Y")) != "N":
+                hits.append((nm, r.get("STAT_CODE")))
+        hits.sort(key=lambda x: len(x[0]))
+        return hits[0] if hits else (None, None)
+
+    def ecos_item_path(stat, pick):
+        rows = ecos_items(stat)
+        grps, order = {}, []
+        for r in rows:
+            g = str(r.get("GRP_CODE") or "G1")
+            if g not in grps:
+                grps[g] = []
+                order.append(g)
+            grps[g].append(r)
+        path, hit = [], None
+        for g in order:
+            code = None
+            for r in grps[g]:
+                nm = str(r.get("ITEM_NAME", "")).replace(" ", "")
+                if pick(nm):
+                    code, hit = r.get("ITEM_CODE"), nm
+                    break
+            if code is None:
+                code = grps[g][0].get("ITEM_CODE")
+            path.append(str(code))
+        return "/".join(path), hit, rows
+
+    def trim_yoy(s, n=12):
         if s is None:
             return None
         if n:
             s = (s.pct_change(n) * 100).dropna()
         return s[s.index >= pd.Timestamp(START)]
 
-    # 1) 한국 CPI 총지수 (901Y009, 항목 0)
+    def item_names(rows, m=12):
+        seen, out = set(), []
+        for r in rows:
+            nm = str(r.get("ITEM_NAME", ""))
+            if nm not in seen:
+                seen.add(nm)
+                out.append(nm)
+            if len(out) >= m:
+                break
+        return ", ".join(out)
+
+    # 1) 한국 CPI 총지수 (901Y009 / 0)
     try:
-        s = kr_yoy_trim(ecos_series("901Y009", "0"))
+        s = trim_yoy(ecos_series("901Y009", "0"))
         if s is None:
             raise RuntimeError("응답 없음")
         add("ECON_KR_CPI", "한국 CPI(전년비)", "ECON", s, "%")
     except Exception as e:
         print(f"[FAIL] ECON_KR_CPI(ECOS): {str(e)[:150]}")
 
-    # 2) 한국 근원 CPI: 901Y009 내 '농산물및석유류제외' 항목 자동 탐색
+    # 2) 한국 근원 CPI: '농산물·석유류 제외' 통계표 자동 탐색
     try:
-        code, nm = ecos_find_item("901Y009", ["농산물", "석유류제외"])
-        if not code:
-            names = [str(r.get("ITEM_NAME", "")) for r in ecos_items("901Y009")][:12]
-            raise RuntimeError("항목 미발견 · 후보: " + ", ".join(names))
-        s = kr_yoy_trim(ecos_series("901Y009", code))
+        nm, stat = ecos_find_stat(["농산물", "석유류"])
+        if not stat:
+            raise RuntimeError("통계표 미발견")
+        path, hit, rows = ecos_item_path(stat, lambda n: "총지수" in n or n == "0")
+        raw = ecos_series(stat, path)
+        if raw is None:
+            raise RuntimeError(f"{nm}({stat})/{path} 데이터 없음 · 항목: " + item_names(rows))
+        s = trim_yoy(raw) if raw.median() > 30 else trim_yoy(raw, n=None)
         add("ECON_KR_CORE", "한국 근원 CPI(전년비)", "ECON", s, "%")
-        print(f"       (근원 CPI 항목: {nm} / {code})")
+        print(f"       (근원 CPI: {nm} / {stat} / {path})")
     except Exception as e:
-        print(f"[FAIL] ECON_KR_CORE(ECOS): {str(e)[:200]}")
+        print(f"[FAIL] ECON_KR_CORE(ECOS): {str(e)[:250]}")
 
-    # 3) 한국 실업률: 통계표 목록에서 자동 탐색
+    # 3) 국제 주요국 실업률: 한국·일본·영국
     try:
-        hit_stat, hit_nm = None, None
-        for p in range(8):
-            rows = ecos_rows(f"StatisticTableList/{ECOS_KEY}/json/kr/{p*1000+1}/{(p+1)*1000}")
-            if not rows:
-                break
-            for r in rows:
-                nm = str(r.get("STAT_NAME", ""))
-                if "실업률" in nm and str(r.get("SRCH_YN", "Y")) != "N":
-                    if hit_nm is None or len(nm) < len(hit_nm):
-                        hit_stat, hit_nm = r.get("STAT_CODE"), nm
-        if not hit_stat:
+        nm_u, stat_u = ecos_find_stat(["주요국", "실업률"])
+        if not stat_u:
             raise RuntimeError("실업률 통계표 미발견")
-        items = ecos_items(hit_stat)
-        if not items:
-            raise RuntimeError(f"{hit_nm}({hit_stat}) 항목 없음")
-        item_code = None
-        for r in items:
-            if "실업률" in str(r.get("ITEM_NAME", "")):
-                item_code = r.get("ITEM_CODE")
-                break
-        if item_code is None:
-            item_code = items[0].get("ITEM_CODE")
-        s = kr_yoy_trim(ecos_series(hit_stat, item_code), n=None)
-        if s is None:
-            names = [str(r.get("ITEM_NAME", "")) for r in items][:12]
-            raise RuntimeError(f"{hit_nm}/{item_code} 데이터 없음 · 항목 후보: " + ", ".join(names))
-        add("ECON_KR_UNEMP", "한국 실업률", "ECON", s, "%")
-        print(f"       (실업률 통계표: {hit_nm} / {hit_stat} / {item_code})")
+        rows_u = ecos_items(stat_u)
+        codes_u = {str(r.get("ITEM_CODE")): 1 for r in rows_u}
+        for key, cc, label in [("ECON_KR_UNEMP", "KOR", "한국 실업률"),
+                               ("ECON_JP_UNEMP", "JPN", "일본 실업률"),
+                               ("ECON_UK_UNEMP", "GBR", "영국 실업률")]:
+            try:
+                if cc not in codes_u:
+                    print(f"[MISS] {key}: {cc} 항목 없음")
+                    continue
+                s = trim_yoy(ecos_series(stat_u, cc), n=None)
+                if s is None:
+                    raise RuntimeError("데이터 없음")
+                add(key, label, "ECON", s, "%")
+            except Exception as e:
+                print(f"[FAIL] {key}(ECOS): {str(e)[:150]}")
+        print(f"       (실업률 통계표: {nm_u} / {stat_u} · 항목: {item_names(rows_u)})")
     except Exception as e:
-        print(f"[FAIL] ECON_KR_UNEMP(ECOS): {str(e)[:200]}")
+        print(f"[FAIL] 실업률(ECOS): {str(e)[:200]}")
 
-    # 4) 한국 M2: 항목 목록에서 'M2' 정확 항목 자동 탐색
+    # 4) 국제 주요국 소비자물가: 일본·영국·중국
     try:
-        got = False
-        last = ""
-        for stat in ("101Y003", "101Y004"):
-            code, nm = None, None
-            for r in ecos_items(stat):
-                n2 = str(r.get("ITEM_NAME", "")).replace(" ", "")
-                if n2 == "M2" or n2.startswith("M2("):
-                    code, nm = r.get("ITEM_CODE"), n2
-                    break
-            if not code:
+        nm_c, stat_c = ecos_find_stat(["주요국", "소비자물가"])
+        if not stat_c:
+            raise RuntimeError("국제 소비자물가 통계표 미발견")
+        rows_c = ecos_items(stat_c)
+        codes_c = {str(r.get("ITEM_CODE")): 1 for r in rows_c}
+        for key, cc, label in [("ECON_JP_CPI", "JPN", "일본 CPI(전년비)"),
+                               ("ECON_UK_CPI", "GBR", "영국 CPI(전년비)"),
+                               ("ECON_CN_CPI", "CHN", "중국 CPI(전년비)")]:
+            try:
+                if cc not in codes_c:
+                    print(f"[MISS] {key}: {cc} 항목 없음")
+                    continue
+                raw = ecos_series(stat_c, cc)
+                if raw is None:
+                    raise RuntimeError("데이터 없음")
+                s = trim_yoy(raw) if raw.median() > 30 else trim_yoy(raw, n=None)
+                add(key, label, "ECON", s, "%")
+            except Exception as e:
+                print(f"[FAIL] {key}(ECOS): {str(e)[:150]}")
+        print(f"       (국제 CPI 통계표: {nm_c} / {stat_c} · 항목: {item_names(rows_c)})")
+    except Exception as e:
+        print(f"[FAIL] 국제 CPI(ECOS): {str(e)[:200]}")
+
+    # 5) 한국 M2: 다차원 항목 경로 자동 구성
+    try:
+        got, last = False, ""
+        for stat in ("101Y004", "101Y003"):
+            path, hit, rows = ecos_item_path(stat, lambda n: n == "M2" or n.startswith("M2("))
+            if not hit:
                 last = stat + ": M2 항목 미발견"
                 continue
-            s = kr_yoy_trim(ecos_series(stat, code))
+            s = trim_yoy(ecos_series(stat, path))
             if s is None:
-                last = f"{stat}/{code}: 데이터 없음"
+                last = f"{stat}/{path}: 데이터 없음"
                 continue
             add("LIQ_KR_M2", "한국 M2(전년비)", "LIQ", s, "%")
-            print(f"       (한국 M2: {stat} / {code} / {nm})")
+            print(f"       (한국 M2: {stat} / {path} / {hit})")
             got = True
             break
         if not got:
-            names = [str(r.get("ITEM_NAME", "")) for r in ecos_items("101Y003")][:12]
-            raise RuntimeError(last + " · 후보: " + ", ".join(names))
+            raise RuntimeError(last + " · 항목: " + item_names(ecos_items("101Y004")))
     except Exception as e:
-        print(f"[FAIL] LIQ_KR_M2(ECOS): {str(e)[:200]}")
+        print(f"[FAIL] LIQ_KR_M2(ECOS): {str(e)[:250]}")
 else:
-    print("[안내] ECOS_KEY 미설정 → 한국 CPI·근원CPI·실업률·M2는 건너뜁니다.")
+    print("[안내] ECOS_KEY 미설정 → 한국·국제(ECOS) 지표는 건너뜁니다.")
     print("       ecos.bok.or.kr 무료 인증키 발급 후 ECOS_KEY 설정 시 수집됩니다.")
 
 # ──────────────── 국내 부동산 (한국부동산원 R-ONE, 인증키 필요) ────────────────
@@ -329,15 +400,21 @@ if REB_KEY:
 
         def reb_find(kws):
             hits = [(nm, sid) for nm, sid in tbls if all(k in nm for k in kws)]
-            hits.sort(key=lambda x: len(x[0]))
-            return hits[0] if hits else (None, None)
+            wk = [h for h in hits if "(주)" in h[0]]
+            mm = [h for h in hits if "(월)" in h[0]]
+            pool = wk or mm or hits
+            pool.sort(key=lambda x: len(x[0]))
+            if not pool:
+                return None, None, None
+            nm, sid = pool[0]
+            return nm, sid, ("WK" if "(주)" in nm else "MM")
 
-        def reb_weekly(sid):
+        def reb_fetch(sid, cyc):
             vals = {}
             for p in range(1, 31):
                 du = ("https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=%s"
-                      "&Type=json&pIndex=%d&pSize=1000&STATBL_ID=%s&DTACYCLE_CD=WK"
-                      % (REB_KEY, p, sid))
+                      "&Type=json&pIndex=%d&pSize=1000&STATBL_ID=%s&DTACYCLE_CD=%s"
+                      % (REB_KEY, p, sid, cyc))
                 js = requests.get(du, timeout=60).json()
                 body = js.get("SttsApiTblData")
                 rows = body[1].get("row", []) if isinstance(body, list) and len(body) > 1 else []
@@ -348,27 +425,32 @@ if REB_KEY:
                 for r in rows:
                     cls = str(r.get("CLS_NM", "")) + str(r.get("CLS_FULLNM", ""))
                     t = str(r.get("WRTTIME_IDTFR_ID", ""))
-                    if "전국" in cls and len(t) == 8:
-                        try:
+                    if "전국" not in cls:
+                        continue
+                    try:
+                        if len(t) == 8:
                             vals[pd.Timestamp(t[:4] + "-" + t[4:6] + "-" + t[6:8])] = float(r["DTA_VAL"])
-                        except Exception:
-                            pass
+                        elif len(t) == 6:
+                            vals[pd.Timestamp(t[:4] + "-" + t[4:6] + "-01")] = float(r["DTA_VAL"])
+                    except Exception:
+                        pass
             if not vals:
-                raise RuntimeError("전국 주간 데이터 없음")
+                raise RuntimeError("전국 데이터 없음")
             s = pd.Series(vals).sort_index()
             return s[s.index >= pd.Timestamp(START)]
 
-        for key, label, kws in [
-            ("RE_KR_APT", "전국 아파트 매매가격지수(주간)", ["아파트", "매매가격지수"]),
-            ("RE_KR_JS",  "전국 아파트 전세가격지수(주간)", ["아파트", "전세가격지수"]),
+        for key, base, kws in [
+            ("RE_KR_APT", "전국 아파트 매매가격지수", ["아파트", "매매가격지수"]),
+            ("RE_KR_JS",  "전국 아파트 전세가격지수", ["아파트", "전세가격지수"]),
         ]:
             try:
-                nm, sid = reb_find(kws)
+                nm, sid, cyc = reb_find(kws)
                 if not sid:
                     cand = [n for n, _ in tbls if kws[1][:4] in n][:10]
                     raise RuntimeError("통계표 미발견 · 후보: " + " | ".join(cand))
-                print(f"[REB]  통계표 확인: {nm} ({sid})")
-                add(key, label, "REALTY", reb_weekly(sid), "지수")
+                print(f"[REB]  통계표 확인: {nm} ({sid}, {cyc})")
+                add(key, base + ("(주간)" if cyc == "WK" else "(월간)"), "REALTY",
+                    reb_fetch(sid, cyc), "지수")
             except Exception as e:
                 print(f"[FAIL] {key}(부동산원): {str(e)[:250]}")
     except Exception as e:
