@@ -101,7 +101,8 @@
     <button class="gbtn" data-g="B">자산 시장</button>
   </nav>
   <nav class="pnav sub" id="snav">
-    <button id="navE" data-g="A">물가·고용</button>
+    <button id="navE" data-g="A">물가</button>
+    <button id="navU" data-g="A">고용</button>
     <button id="navR" data-g="A">기준금리</button>
     <button id="navL" data-g="A">유동성</button>
     <button id="navF" data-g="A">환율</button>
@@ -391,6 +392,7 @@
 
       <!-- ══════════ 07 채권 금리 ══════════ -->
       <section id="secB" style="display:none">
+        <div class="controls" id="ctryB"></div>
         <div class="controls" id="chipsB"></div>
         <div class="controls" id="rangesB">
           <button class="rbtn" data-r="1m">1개월</button>
@@ -466,8 +468,50 @@
         </div>
         </div>
         <footer class="foot">
-          <div><b>데이터</b> · FRED 공개 DB. 미국 CPI·실업률은 BLS(FRED), 한국 CPI는 한국은행 ECOS 기준이며 월별 지표라 1개월 내외 발표 시차가 있습니다.</div>
-          <div><b>변환</b> · 미국 CPI는 지수를 전년동월비(%)로 변환해 표시합니다.</div>
+          <div><b>데이터</b> · 미국 BLS(FRED), 유로존 Eurostat(FRED), 한국·영국·중국·일본은 한국은행 ECOS(국제통계) 기준 월별 지표입니다.</div>
+          <div><b>변환</b> · 물가지수는 전년동월비(%)로 변환해 표시합니다. 발표 시차가 1개월 내외 있습니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ 고용 ══════════ -->
+      <section id="secU" style="display:none">
+        <div class="controls" id="ctryU"></div>
+        <div class="controls" id="chipsU"></div>
+        <div class="controls" id="rangesU">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn" data-r="1y">1년</button>
+          <button class="rbtn on" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0U" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1U" aria-label="종료일">
+            <button class="go" id="goU">적용</button>
+          </div>
+        </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">요약</h2>
+          <div id="barsU"></div>
+          <div class="note">행을 누르면 해당 지표가 선택됩니다</div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleU">실업률</h2>
+          <div class="hero" id="heroU"></div>
+          <div class="chart-wrap">
+            <svg class="big" id="chartU" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipU"></div>
+          </div>
+          <div class="legend" id="legU"></div>
+          <div class="note" id="noteU"></div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 미국 BLS(FRED), 한국·일본·영국은 한국은행 ECOS 국제통계(계절조정) 기준 월별 지표입니다.</div>
+          <div><b>해석</b> · 실업률의 급격한 상승은 침체 신호(삼의 법칙)로 해석되며, 중앙은행 완화 전환의 근거가 되곤 합니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
       </section>
@@ -1904,10 +1948,6 @@ function init(){
 }
 return{init};
 }
-const BND=IN_simpleTab("B",{group:"BOND",name:"채권 금리",mode:"raw",infoKey:"G_BOND",allLabel:"국가 비교",
-  allNote:"국채 수익률(%)을 원값 그대로 겹쳐 표시합니다. 0선 아래의 장단기금리차는 수익률곡선 역전 구간입니다.",
-  itemNote:{BOND_KR10Y:"OECD 월별 집계라 발표 시차가 있습니다. 일별 확인은 금융투자협회 채권정보를 참고하십시오.",
-            BOND_SPREAD:"음수(역전)는 역사적으로 경기침체에 선행하는 경향이 있었으나 시차가 불규칙합니다."}});
 
 
 window.IN_hero=function(sfx,html){
@@ -2029,10 +2069,10 @@ function init(){
 return{init};
 })();
 
-// ══════════ 국가 구조 탭 생성기 (물가·고용 / 유동성 / 부동산) ══════════
+// ══════════ 국가 구조 탭 생성기 ══════════
 function IN_ctryTab(sfx,cfg){
 const PAL=["#B4441B","#2F4B7C","#17694F","#C9A227","#6B4E9B","#3D8A8C","#E8862E"];
-let view=cfg.defView||"CMP",ind=cfg.cmp[0].id,sel="ALL",curRange="3y",cT0=null,cT1=null,inited=false;
+let view=cfg.defView||(cfg.cmp?"CMP":cfg.countries[0].cc),ind=cfg.cmp?cfg.cmp[0].id:null,sel="ALL",curRange="3y",cT0=null,cT1=null,inited=false;
 const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
 const fmtN=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
 const $=id=>document.getElementById(id+sfx);
@@ -2048,8 +2088,8 @@ function co(){return cfg.countries.find(c=>c.cc===view);}
 function buildCtry(){
   const el=$("ctry");el.innerHTML="";
   const mk=(label,val,on)=>{const b=document.createElement("button");b.className="rbtn"+(on?" on":"");b.textContent=label;
-    b.onclick=()=>{view=val;sel="ALL";ind=cfg.cmp[0].id;buildCtry();buildChips();draw();};el.appendChild(b);};
-  mk("국가 비교","CMP",view==="CMP");
+    b.onclick=()=>{view=val;sel="ALL";ind=cfg.cmp?cfg.cmp[0].id:null;buildCtry();buildChips();draw();};el.appendChild(b);};
+  if(cfg.cmp)mk(cfg.cmpLabel||"국가 비교","CMP",view==="CMP");
   cfg.countries.forEach(c=>mk(c.label,c.cc,view===c.cc));
 }
 function buildChips(){
@@ -2064,7 +2104,7 @@ function buildChips(){
       el.innerHTML='<span class="note" style="margin:0">'+(c.note||"수집된 지표가 없습니다. 수집기 실행과 인증키 설정을 확인하십시오.")+'</span>';
       return;
     }
-    mk("전체 비교",sel==="ALL",()=>{sel="ALL";buildChips();draw();},null);
+    mk(cfg.inverted?"국가 비교":"전체 비교",sel==="ALL",()=>{sel="ALL";buildChips();draw();},null);
     avail.forEach(it=>mk(it.label,sel===it.k,()=>{sel=it.k;buildChips();draw();},it.k));
   }
 }
@@ -2087,8 +2127,8 @@ function draw(){
     svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">표시할 데이터가 없습니다.</text>';
     $("leg").innerHTML="";$("note").textContent=(view!=="CMP"&&co().note)||"";window.IN_hero(sfx,null);drawBars();return;
   }
-  if(view==="CMP")$("title").textContent=cfg.cmp.find(x=>x.id===ind).label+" · 국가별"+(cfg.mode==="idx"?" (구간 시작=100)":"");
-  else if(sel==="ALL")$("title").textContent=co().label+" 지표 비교"+(cfg.mode==="idx"?" (구간 시작=100)":"");
+  if(view==="CMP")$("title").textContent=cfg.cmp.find(x=>x.id===ind).label+(cfg.mode==="idx"?" (구간 시작=100)":"");
+  else if(sel==="ALL")$("title").textContent=co().label+(cfg.inverted?" · 국가 비교":" 지표 비교")+(cfg.mode==="idx"?" (구간 시작=100)":"");
   const list=[];
   L.forEach((it,i)=>{
     const w=window.IN_inWin(s[it.k].pts,t0,t1);if(w.length<2)return;
@@ -2149,49 +2189,48 @@ function wire(){
 function init(){if(!inited){inited=true;wire();}buildCtry();buildChips();draw();}
 return{init};
 }
-const ECO=IN_ctryTab("E",{mode:"raw",
+const ECO=IN_ctryTab("E",{mode:"raw",inverted:true,defView:"CPI",
  countries:[
-  {cc:"KR",label:"한국",items:[{k:"ECON_KR_CPI",label:"CPI(전년비)"},{k:"ECON_KR_CORE",label:"근원 CPI(전년비)"},{k:"ECON_KR_UNEMP",label:"실업률"}]},
-  {cc:"US",label:"미국",items:[{k:"ECON_US_CPI",label:"CPI(전년비)"},{k:"ECON_US_CORE",label:"근원 CPI(전년비)"},{k:"ECON_US_UNEMP",label:"실업률"}]},
-  {cc:"EA",label:"유로존",items:[{k:"ECON_EA_CPI",label:"HICP(전년비)"}]},
-  {cc:"UK",label:"영국",items:[{k:"ECON_UK_CPI",label:"CPI(전년비)"},{k:"ECON_UK_UNEMP",label:"실업률"}],note:"영국 지표 수집이 확인되지 않았습니다. 수집기 로그(ECOS 국제통계)를 확인하십시오."},
-  {cc:"CN",label:"중국",items:[{k:"ECON_CN_CPI",label:"CPI(전년비)"}],note:"중국 지표 수집이 확인되지 않았습니다. 수집기 로그(ECOS 국제통계)를 확인하십시오."},
-  {cc:"JP",label:"일본",items:[{k:"ECON_JP_CPI",label:"CPI(전년비)"},{k:"ECON_JP_UNEMP",label:"실업률"}],note:"일본 지표 수집이 확인되지 않았습니다. 수집기 로그(ECOS 국제통계)를 확인하십시오."}],
- cmp:[{id:"CPI",label:"CPI 비교",keys:{KR:"ECON_KR_CPI",US:"ECON_US_CPI",EA:"ECON_EA_CPI",UK:"ECON_UK_CPI",CN:"ECON_CN_CPI",JP:"ECON_JP_CPI"}},
-      {id:"CORE",label:"근원 CPI 비교",keys:{KR:"ECON_KR_CORE",US:"ECON_US_CORE"}},
-      {id:"UNEMP",label:"실업률 비교",keys:{KR:"ECON_KR_UNEMP",US:"ECON_US_UNEMP",JP:"ECON_JP_UNEMP",UK:"ECON_UK_UNEMP"}}],
- cmpNote:"물가는 전년동월비(%), 실업률은 수준(%)입니다. 국가별 발표 시차가 있습니다.",
- allNote:"해당 국가의 물가·고용 지표를 %(전년비·수준) 축에 겹쳐 표시합니다."});
-const LIQ=IN_ctryTab("L",{mode:"raw",
+  {cc:"CPI",label:"CPI",items:[{k:"ECON_KR_CPI",label:"한국"},{k:"ECON_US_CPI",label:"미국"},{k:"ECON_EA_CPI",label:"유로존"},{k:"ECON_UK_CPI",label:"영국"},{k:"ECON_CN_CPI",label:"중국"},{k:"ECON_JP_CPI",label:"일본"}],note:"CPI 데이터 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
+  {cc:"CORE",label:"근원 CPI",items:[{k:"ECON_KR_CORE",label:"한국"},{k:"ECON_US_CORE",label:"미국"}],note:"근원 CPI 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."}],
+ allNote:"국가별 물가 상승률(전년동월비, %)을 겹쳐 비교합니다. 국가별 발표 시차가 있습니다."});
+const EMP=IN_ctryTab("U",{mode:"raw",inverted:true,defView:"UNEMP",
  countries:[
-  {cc:"KR",label:"한국",items:[{k:"LIQ_KR_M2",label:"M2(전년비)"}]},
-  {cc:"US",label:"미국",items:[{k:"LIQ_US_M2",label:"M2(전년비)"},{k:"LIQ_US_CB",label:"연준 총자산(전년비)"}]},
-  {cc:"EA",label:"유로존",items:[{k:"LIQ_EA_CB",label:"ECB 총자산(전년비)"}]},
-  {cc:"JP",label:"일본",items:[{k:"LIQ_JP_CB",label:"일본은행 총자산(전년비)"}]}],
- cmp:[{id:"M2",label:"M2 비교",keys:{KR:"LIQ_KR_M2",US:"LIQ_US_M2"}},
-      {id:"CB",label:"중앙은행 자산 비교",keys:{US:"LIQ_US_CB",EA:"LIQ_EA_CB",JP:"LIQ_JP_CB"}}],
- cmpNote:"모두 전년 대비 증가율(%)입니다. 음수는 통화·자산 축소(긴축) 국면을 뜻합니다.",
- allNote:"해당 국가의 유동성 지표를 전년비 증가율(%)로 겹쳐 표시합니다.",
+  {cc:"UNEMP",label:"실업률",items:[{k:"ECON_KR_UNEMP",label:"한국"},{k:"ECON_US_UNEMP",label:"미국"},{k:"ECON_JP_UNEMP",label:"일본"},{k:"ECON_UK_UNEMP",label:"영국"}],note:"실업률 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."}],
+ allNote:"국가별 실업률(%, 계절조정)을 겹쳐 비교합니다."});
+const LIQ=IN_ctryTab("L",{mode:"raw",inverted:true,defView:"M2",
+ countries:[
+  {cc:"M2",label:"M2",items:[{k:"LIQ_KR_M2",label:"한국"},{k:"LIQ_US_M2",label:"미국"}],note:"M2 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
+  {cc:"CB",label:"중앙은행 총자산",items:[{k:"LIQ_US_CB",label:"미국(연준)"},{k:"LIQ_EA_CB",label:"유로존(ECB)"},{k:"LIQ_JP_CB",label:"일본(일본은행)"}]}],
+ allNote:"국가별 전년 대비 증가율(%)입니다. 음수는 통화·자산 축소(긴축) 국면을 뜻합니다.",
  itemNote:{LIQ_US_CB:"주간 수치의 전년동주비입니다. 음수면 양적긴축(QT) 진행을 뜻합니다.",LIQ_KR_M2:"한국은행 ECOS 기준 월별 통화량입니다."}});
 const RLT=IN_ctryTab("P",{mode:"idx",defView:"KR",
  countries:[
-  {cc:"KR",label:"한국",items:[{k:"RE_KR_APT",label:"아파트 매매(주간)"},{k:"RE_KR_JS",label:"아파트 전세(주간)"}]},
+  {cc:"KR",label:"한국",items:[{k:"RE_KR_APT",label:"아파트 매매"},{k:"RE_KR_JS",label:"아파트 전세"}]},
   {cc:"US",label:"미국",items:[{k:"RE_US_CS",label:"주택가격(케이스-실러)"},{k:"RE_US_MORT",label:"모기지 30년 금리"}]},
   {cc:"EA",label:"유로존",items:[{k:"RE_EA_BIS",label:"주택가격(BIS 분기)"}]},
   {cc:"UK",label:"영국",items:[{k:"RE_UK_BIS",label:"주택가격(BIS 분기)"}]},
   {cc:"CN",label:"중국",items:[{k:"RE_CN_BIS",label:"주택가격(BIS 분기)"}]},
   {cc:"JP",label:"일본",items:[{k:"RE_JP_BIS",label:"주택가격(BIS 분기)"}]}],
  cmp:[{id:"PRICE",label:"주택가격 비교",keys:{KR:"RE_KR_APT",US:"RE_US_CS",EA:"RE_EA_BIS",UK:"RE_UK_BIS",CN:"RE_CN_BIS",JP:"RE_JP_BIS"}}],
- cmpNote:"국가별 기준·주기가 달라(주간 표본, 월별 실거래, 분기 실질) 구간 시작=100 상대 비교만 유효합니다.",
+ cmpNote:"국가별 기준·주기가 달라(표본 조사, 월별 실거래, 분기 실질) 구간 시작=100 상대 비교만 유효합니다.",
  allNote:"단위가 달라 구간 시작=100으로 재계산해 비교합니다. 절대값은 개별 선택 시 표시됩니다.",
- itemNote:{RE_KR_APT:"한국부동산원 주간 표본 조사(호가 기반)로 실거래 체감과 다를 수 있습니다.",RE_KR_JS:"전세가격은 매매 수요의 선행·동행 판단에 활용됩니다.",RE_US_CS:"약 2개월 발표 시차가 있습니다."}});
+ itemNote:{RE_KR_APT:"한국부동산원 표본 조사(호가 기반)로 실거래 체감과 다를 수 있습니다.",RE_KR_JS:"전세가격은 매매 수요의 선행·동행 판단에 활용됩니다.",RE_US_CS:"약 2개월 발표 시차가 있습니다."}});
+const BND=IN_ctryTab("B",{mode:"raw",defView:"US",cmpLabel:"국가 비교",
+ countries:[
+  {cc:"US",label:"미국",items:[{k:"BOND_US2Y",label:"국채 2년"},{k:"BOND_US10Y",label:"국채 10년"},{k:"BOND_US30Y",label:"국채 30년"},{k:"BOND_SPREAD",label:"장단기금리차(10y-2y)"}]},
+  {cc:"KR",label:"한국",items:[{k:"BOND_KR10Y",label:"국채 10년(월별)"}]}],
+ cmp:[{id:"Y10",label:"10년물 비교",keys:{US:"BOND_US10Y",KR:"BOND_KR10Y"}}],
+ cmpNote:"한·미 10년물 금리(%)를 겹쳐 비교합니다. 한국은 OECD 월별 집계라 시차가 있습니다.",
+ allNote:"해당 국가의 국채 금리(%)를 겹쳐 표시합니다. 0선 아래의 장단기금리차는 수익률곡선 역전 구간입니다.",
+ itemNote:{BOND_SPREAD:"음수(역전)는 역사적으로 경기침체에 선행하는 경향이 있었으나 시차가 불규칙합니다.",BOND_KR10Y:"OECD 월별 집계라 발표 시차가 있습니다. 일별 확인은 금융투자협회 채권정보를 참고하십시오."}});
 
-// ══════════ 탭 전환 (2대 분류 · 11개 탭) ══════════
+// ══════════ 탭 전환 (2대 분류 · 12개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),P:document.getElementById("secP"),L:document.getElementById("secL")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),P:document.getElementById("navP"),L:document.getElementById("navL")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),P:document.getElementById("secP"),L:document.getElementById("secL")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),P:document.getElementById("navP"),L:document.getElementById("navL")};
 const stamp=document.getElementById("stamp");
-const GROUPS={A:["E","R","L","F"],B:["I","S","T","B","C","P","X"]};
+const GROUPS={A:["E","U","R","L","F"],B:["I","S","T","B","C","P","X"]};
 function groupOf(k){for(const g in GROUPS){if(GROUPS[g].indexOf(k)>=0)return g;}return "A";}
 let fxStarted=false;
 function show(k){
@@ -2200,7 +2239,8 @@ function show(k){
   document.querySelectorAll("#gnav .gbtn").forEach(b=>b.classList.toggle("on",b.getAttribute("data-g")===g));
   document.querySelectorAll("#snav button").forEach(b=>{b.style.display=(b.getAttribute("data-g")===g)?"":"none";});
   const gen=window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"";
-  if(k==="E"){stamp.textContent="물가·고용 · 수집 파일 기반(FRED·ECOS)"+gen;ECO.init();}
+  if(k==="E"){stamp.textContent="물가 · 수집 파일 기반(FRED·ECOS)"+gen;ECO.init();}
+  if(k==="U"){stamp.textContent="고용 · 수집 파일 기반(FRED·ECOS)"+gen;EMP.init();}
   if(k==="R"){stamp.textContent="기준금리(통화정책) · 확인일 2026-07-07 · 내장 데이터";}
   if(k==="L"){stamp.textContent="유동성·통화량 · 수집 파일 기반(FRED·ECOS)"+gen;LIQ.init();}
   if(k==="F"){stamp.textContent="환율 · ECB 일별 기준환율";if(!fxStarted){fxStarted=true;FX.init();}}
