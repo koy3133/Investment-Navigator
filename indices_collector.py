@@ -440,10 +440,12 @@ if REB_KEY:
         if not tbls:
             raise RuntimeError("통계표 목록 응답 없음(인증키 확인 필요)")
 
-        def reb_candidates(kws_list):
+        def reb_candidates(kws_list, excludes):
             hits = []
             for kws in kws_list:
-                hits += [(nm, sid) for nm, sid in tbls if all(k in nm for k in kws)]
+                hits += [(nm, sid) for nm, sid in tbls
+                         if all(k in nm for k in kws)
+                         and not any(x in nm for x in excludes)]
             hits = list(dict.fromkeys(hits))
             def rank(h):
                 nm = h[0]
@@ -451,12 +453,12 @@ if REB_KEY:
                         0 if "아파트" in nm else 1,
                         len(nm))
             hits.sort(key=rank)
-            return [(nm, sid, ("WK" if "(주)" in nm else "MM")) for nm, sid in hits[:5]]
+            return [(nm, sid, ("WK" if "(주)" in nm else "MM")) for nm, sid in hits[:8]]
 
         def reb_fetch(sid, cyc):
             vals = {}
             samples = []
-            for p in range(1, 31):
+            for p in range(1, 61):
                 du = ("https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=%s"
                       "&Type=json&pIndex=%d&pSize=1000&STATBL_ID=%s&DTACYCLE_CD=%s"
                       % (REB_KEY, p, sid, cyc))
@@ -476,9 +478,14 @@ if REB_KEY:
                         continue
                     try:
                         if len(t) == 8:
-                            vals[pd.Timestamp(t[:4] + "-" + t[4:6] + "-" + t[6:8])] = float(r["DTA_VAL"])
+                            ts = pd.Timestamp(t[:4] + "-" + t[4:6] + "-" + t[6:8])
+                        elif len(t) == 6 and cyc == "WK":
+                            ts = pd.Timestamp(dt.date.fromisocalendar(int(t[:4]), int(t[4:6]), 5))
                         elif len(t) == 6:
-                            vals[pd.Timestamp(t[:4] + "-" + t[4:6] + "-01")] = float(r["DTA_VAL"])
+                            ts = pd.Timestamp(t[:4] + "-" + t[4:6] + "-01")
+                        else:
+                            continue
+                        vals[ts] = float(r["DTA_VAL"])
                     except Exception:
                         pass
             if len(vals) < 5:
@@ -496,7 +503,8 @@ if REB_KEY:
             ("RE_KR_APT", "전국 아파트 매매가격지수", [["아파트", "매매가격지수"], ["매매가격지수"]]),
             ("RE_KR_JS",  "전국 아파트 전세가격지수", [["아파트", "전세가격지수"], ["전세가격지수"]]),
         ]:
-            cands = reb_candidates(kws)
+            excl = ["규모별", "연령별", "준전세", "월세", "수급", "거래"]
+            cands = reb_candidates(kws, excl)
             if not cands:
                 cand = [n for n, _ in tbls if kws[-1][0][:4] in n][:10]
                 print(f"[FAIL] {key}(부동산원): 통계표 미발견 · 후보: " + " | ".join(cand))
