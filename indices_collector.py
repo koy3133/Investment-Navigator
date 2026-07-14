@@ -297,31 +297,38 @@ if ECOS_KEY:
     except Exception as e:
         print(f"[FAIL] ECON_KR_CPI(ECOS): {str(e)[:150]}")
 
-    # 2) 한국 근원 CPI: 901Y009 항목 탐색 → 실패 시 통계표 탐색
+    # 2) 한국 근원 CPI: '소비자물가' 계열 통계표 순회, 제외지수 항목 탐색
     try:
-        s, how = None, ""
-        rows9 = ecos_items("901Y009")
-        code = None
-        for r in rows9:
-            nm = str(r.get("ITEM_NAME", "")).replace(" ", "")
-            if "농산물" in nm and "석유류" in nm:
-                code = r.get("ITEM_CODE")
-                how = f"901Y009/{code}({nm})"
-                break
-        if code:
-            s = trim_yoy(ecos_series("901Y009", str(code)))
-        if s is None:
-            nm2, stat2 = ecos_find_stat(["농산물", "석유류"])
-            if stat2:
-                path, hit, rows2 = ecos_item_path(stat2, lambda n: "총지수" in n or n == "0")
-                raw = ecos_series(stat2, path)
-                if raw is not None:
-                    s = trim_yoy(raw) if raw.median() > 30 else trim_yoy(raw, n=None)
-                    how = f"{nm2}/{stat2}/{path}"
-        if s is None:
-            raise RuntimeError("901Y009 항목·통계표 모두 미발견 (항목 수: %d)" % len(rows9))
-        add("ECON_KR_CORE", "한국 근원 CPI(전년비)", "ECON", s, "%")
-        print(f"       (근원 CPI: {how})")
+        stats = ["901Y009"]
+        for r in ecos_tables():
+            nm = str(r.get("STAT_NAME", ""))
+            if "소비자물가" in nm and str(r.get("SRCH_YN", "Y")) != "N":
+                stats.append(str(r.get("STAT_CODE")))
+        seen, done, tried = set(), False, []
+        for stat in stats[:10]:
+            if stat in seen:
+                continue
+            seen.add(stat)
+            code, hit = None, None
+            for r in ecos_items(stat):
+                nm = str(r.get("ITEM_NAME", "")).replace(" ", "")
+                if ("농산물" in nm and "석유류" in nm) or ("식료품" in nm and "에너지" in nm):
+                    code, hit = r.get("ITEM_CODE"), nm
+                    break
+            if not code:
+                tried.append(stat)
+                continue
+            raw = ecos_series(stat, str(code))
+            if raw is None:
+                tried.append(f"{stat}/{code}:데이터없음")
+                continue
+            s = trim_yoy(raw) if raw.median() > 30 else trim_yoy(raw, n=None)
+            add("ECON_KR_CORE", "한국 근원 CPI(전년비)", "ECON", s, "%")
+            print(f"       (근원 CPI: {stat} / {code} / {hit})")
+            done = True
+            break
+        if not done:
+            raise RuntimeError("제외지수 항목 미발견 · 시도 통계표: " + ", ".join(tried[:8]))
     except Exception as e:
         print(f"[FAIL] ECON_KR_CORE(ECOS): {str(e)[:250]}")
 
@@ -433,19 +440,18 @@ if REB_KEY:
         if not tbls:
             raise RuntimeError("통계표 목록 응답 없음(인증키 확인 필요)")
 
-        def reb_find(kws_list):
+        def reb_candidates(kws_list):
             hits = []
             for kws in kws_list:
                 hits += [(nm, sid) for nm, sid in tbls if all(k in nm for k in kws)]
             hits = list(dict.fromkeys(hits))
-            wk = [h for h in hits if "(주)" in h[0]]
-            mm = [h for h in hits if "(월)" in h[0]]
-            pool = wk or mm or hits
-            pool.sort(key=lambda x: len(x[0]))
-            if not pool:
-                return None, None, None
-            nm, sid = pool[0]
-            return nm, sid, ("WK" if "(주)" in nm else "MM")
+            def rank(h):
+                nm = h[0]
+                return (0 if "(주)" in nm else 1,
+                        0 if "아파트" in nm else 1,
+                        len(nm))
+            hits.sort(key=rank)
+            return [(nm, sid, ("WK" if "(주)" in nm else "MM")) for nm, sid in hits[:5]]
 
         def reb_fetch(sid, cyc):
             vals = {}
@@ -478,22 +484,35 @@ if REB_KEY:
             if len(vals) < 5:
                 raise RuntimeError(f"전국 데이터 {len(vals)}점(비정상) · 표본: " + " / ".join(samples[:4]))
             s = pd.Series(vals).sort_index()
-            return s[s.index >= pd.Timestamp(START)]
+            age = (pd.Timestamp(END) - s.index[-1]).days
+            if age > 90:
+                raise RuntimeError(f"갱신 중단 추정(최근값 {s.index[-1].date()}, {age}일 경과)")
+            s = s[s.index >= pd.Timestamp(START)]
+            if len(s) < 5:
+                raise RuntimeError("조회창 내 데이터 부족")
+            return s
 
         for key, base, kws in [
             ("RE_KR_APT", "전국 아파트 매매가격지수", [["아파트", "매매가격지수"], ["매매가격지수"]]),
             ("RE_KR_JS",  "전국 아파트 전세가격지수", [["아파트", "전세가격지수"], ["전세가격지수"]]),
         ]:
-            try:
-                nm, sid, cyc = reb_find(kws)
-                if not sid:
-                    cand = [n for n, _ in tbls if kws[-1][0][:4] in n][:10]
-                    raise RuntimeError("통계표 미발견 · 후보: " + " | ".join(cand))
-                print(f"[REB]  통계표 확인: {nm} ({sid}, {cyc})")
-                add(key, base + ("(주간)" if cyc == "WK" else "(월간)"), "REALTY",
-                    reb_fetch(sid, cyc), "지수")
-            except Exception as e:
-                print(f"[FAIL] {key}(부동산원): {str(e)[:250]}")
+            cands = reb_candidates(kws)
+            if not cands:
+                cand = [n for n, _ in tbls if kws[-1][0][:4] in n][:10]
+                print(f"[FAIL] {key}(부동산원): 통계표 미발견 · 후보: " + " | ".join(cand))
+                continue
+            done, errs = False, []
+            for nm, sid, cyc in cands:
+                try:
+                    s = reb_fetch(sid, cyc)
+                    print(f"[REB]  통계표 채택: {nm} ({sid}, {cyc})")
+                    add(key, base + ("(주간)" if cyc == "WK" else "(월간)"), "REALTY", s, "지수")
+                    done = True
+                    break
+                except Exception as e:
+                    errs.append(f"{nm}({cyc}): {str(e)[:90]}")
+            if not done:
+                print(f"[FAIL] {key}(부동산원): " + " | ".join(errs[:4]))
     except Exception as e:
         print(f"[FAIL] 부동산원 목록 조회: {str(e)[:250]}")
 else:
