@@ -2,9 +2,9 @@ name: collect-indices
 
 on:
   schedule:
-    - cron: "30 22 * * *"   # UTC 22:30 = 한국시간 07:30 (미국 종가 반영)
-    - cron: "0 8 * * 1-5"   # UTC 08:00 = 한국시간 17:00 평일 (한국 종가 반영)
-  workflow_dispatch:         # Actions 탭에서 수동 실행 버튼 활성화
+    - cron: "30 22 * * *"
+    - cron: "0 8 * * 1-5"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,24 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: 라이브러리 설치
-        run: pip install pykrx yfinance pandas
-
+        run: pip install pykrx yfinance pandas requests
       - name: 지수 수집
         env:
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
+          ECOS_KEY: ${{ secrets.ECOS_KEY }}
+          REB_KEY: ${{ secrets.REB_KEY }}
         run: python indices_collector.py
-
-      - name: 데이터 커밋
+      - name: 결과 커밋
         run: |
-          git config user.name "collector-bot"
-          git config user.email "bot@users.noreply.github.com"
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add data_indices.js
-          git commit -m "data update $(date -u +%F)" || echo "변경 없음"
+          git diff --cached --quiet || git commit -m "자동 수집 $(date -u +'%Y-%m-%d %H:%M')"
           git push
