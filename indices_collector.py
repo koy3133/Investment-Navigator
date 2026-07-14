@@ -526,7 +526,7 @@ if REB_KEY:
                 try:
                     s = reb_fetch(sid, cyc)
                     print(f"[REB]  통계표 채택: {nm} ({sid}, {cyc})")
-                    add(key, base + ("(주간)" if cyc == "WK" else "(월간)"), "REALTY", s, "지수")
+                    add(key, base + ("(주간·부동산원)" if cyc == "WK" else "(월간·부동산원)"), "REALTY", s, "지수")
                     done = True
                     break
                 except Exception as e:
@@ -538,27 +538,43 @@ if REB_KEY:
 else:
     print("[안내] REB_KEY 미설정 → 부동산원 아파트 매매·전세지수는 건너뜁니다.")
 
-# ── 폴백: 부동산원 미수집 시 한국은행 ECOS의 주택가격지수(부동산원 원자료) 사용 ──
+# ── 폴백: 부동산원 API 미수집 시 한국은행 ECOS 등재 주택지수 사용(부동산원 우선, KB 후순위) ──
 if os.getenv("ECOS_KEY") and ("RE_KR_APT" not in series or "RE_KR_JS" not in series):
     try:
-        for key, kws, label in [
-            ("RE_KR_APT", ["주택", "매매가격지수"], "전국 아파트 매매가격지수(월간)"),
-            ("RE_KR_JS",  ["주택", "전세가격지수"], "전국 아파트 전세가격지수(월간)"),
+        def ecos_house_cands(kw):
+            out = []
+            for r in ecos_tables():
+                nm = str(r.get("STAT_NAME", ""))
+                if kw in nm and "지수" in nm and str(r.get("SRCH_YN", "Y")) != "N":
+                    pri = 0 if "부동산원" in nm else (2 if "KB" in nm.upper() else 1)
+                    out.append((pri, len(nm), nm, str(r.get("STAT_CODE"))))
+            out.sort()
+            return [(nm, st) for _, _, nm, st in out[:5]]
+
+        for key, kw, base in [
+            ("RE_KR_APT", "매매가격", "전국 아파트 매매가격지수"),
+            ("RE_KR_JS",  "전세가격", "전국 아파트 전세가격지수"),
         ]:
             if key in series:
                 continue
-            nm, stat = ecos_find_stat(kws)
-            if not stat:
-                print(f"[MISS] {key}(ECOS 폴백): 통계표 미발견")
-                continue
-            path, hit, rows = ecos_item_path(stat, lambda n: n == "전국" or "아파트" in n)
-            raw = ecos_series(stat, path)
-            if raw is None:
-                print(f"[FAIL] {key}(ECOS 폴백): {nm}/{stat}/{path} 데이터 없음 · 항목: " + item_names(rows))
-                continue
-            s = raw[raw.index >= pd.Timestamp(START)]
-            if add(key, label, "REALTY", s, "지수"):
-                print(f"       ({key} ECOS 폴백 채택: {nm} / {stat} / {path})")
+            done, errs = False, []
+            for nm, stat in ecos_house_cands(kw):
+                try:
+                    path, hit, rows = ecos_item_path(stat, lambda n: n == "전국" or "아파트" in n)
+                    raw = ecos_series(stat, path)
+                    if raw is None:
+                        errs.append(f"{nm}:데이터없음")
+                        continue
+                    s = raw[raw.index >= pd.Timestamp(START)]
+                    src_tag = "부동산원" if "부동산원" in nm else ("KB" if "KB" in nm.upper() else "ECOS")
+                    if add(key, base + f"(월간·{src_tag})", "REALTY", s, "지수"):
+                        print(f"       ({key} ECOS 폴백 채택: {nm} / {stat} / {path})")
+                        done = True
+                        break
+                except Exception as e:
+                    errs.append(f"{nm}: {str(e)[:60]}")
+            if not done:
+                print(f"[FAIL] {key}(ECOS 폴백): " + " | ".join(errs[:4]))
     except Exception as e:
         print(f"[FAIL] ECOS 주택지수 폴백: {str(e)[:200]}")
 
