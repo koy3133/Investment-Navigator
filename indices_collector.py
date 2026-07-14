@@ -427,11 +427,23 @@ if REB_KEY:
     try:
         import requests
 
+        RH = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+
+        def reb_get(url):
+            for i in range(2):
+                try:
+                    return requests.get(url, timeout=60, headers=RH).json()
+                except Exception:
+                    if i == 1:
+                        raise
+                    import time
+                    time.sleep(3)
+
         tbls = []
         for p in range(1, 31):
             cu = ("https://www.reb.or.kr/r-one/openapi/SttsApiTbl.do?KEY=%s&Type=json"
                   "&pIndex=%d&pSize=1000" % (REB_KEY, p))
-            cat = requests.get(cu, timeout=60).json()
+            cat = reb_get(cu)
             body = cat.get("SttsApiTbl")
             rows = body[1].get("row", []) if isinstance(body, list) and len(body) > 1 else []
             if not rows:
@@ -462,7 +474,7 @@ if REB_KEY:
                 du = ("https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=%s"
                       "&Type=json&pIndex=%d&pSize=1000&STATBL_ID=%s&DTACYCLE_CD=%s"
                       % (REB_KEY, p, sid, cyc))
-                js = requests.get(du, timeout=60).json()
+                js = reb_get(du)
                 body = js.get("SttsApiTblData")
                 rows = body[1].get("row", []) if isinstance(body, list) and len(body) > 1 else []
                 if not rows:
@@ -525,6 +537,30 @@ if REB_KEY:
         print(f"[FAIL] 부동산원 목록 조회: {str(e)[:250]}")
 else:
     print("[안내] REB_KEY 미설정 → 부동산원 아파트 매매·전세지수는 건너뜁니다.")
+
+# ── 폴백: 부동산원 미수집 시 한국은행 ECOS의 주택가격지수(부동산원 원자료) 사용 ──
+if os.getenv("ECOS_KEY") and ("RE_KR_APT" not in series or "RE_KR_JS" not in series):
+    try:
+        for key, kws, label in [
+            ("RE_KR_APT", ["주택", "매매가격지수"], "전국 아파트 매매가격지수(월간)"),
+            ("RE_KR_JS",  ["주택", "전세가격지수"], "전국 아파트 전세가격지수(월간)"),
+        ]:
+            if key in series:
+                continue
+            nm, stat = ecos_find_stat(kws)
+            if not stat:
+                print(f"[MISS] {key}(ECOS 폴백): 통계표 미발견")
+                continue
+            path, hit, rows = ecos_item_path(stat, lambda n: n == "전국" or "아파트" in n)
+            raw = ecos_series(stat, path)
+            if raw is None:
+                print(f"[FAIL] {key}(ECOS 폴백): {nm}/{stat}/{path} 데이터 없음 · 항목: " + item_names(rows))
+                continue
+            s = raw[raw.index >= pd.Timestamp(START)]
+            if add(key, label, "REALTY", s, "지수"):
+                print(f"       ({key} ECOS 폴백 채택: {nm} / {stat} / {path})")
+    except Exception as e:
+        print(f"[FAIL] ECOS 주택지수 폴백: {str(e)[:200]}")
 
 # ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
 if KRX_READY:

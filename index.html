@@ -2125,6 +2125,7 @@ function draw(){
   const single=(view!=="CMP"&&sel!=="ALL"&&L.length===1);
   if(!L.length){
     svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">표시할 데이터가 없습니다.</text>';
+    $("title").textContent=(view==="CMP")?cfg.cmp.find(x=>x.id===ind).label:co().label+" · 데이터 없음";
     $("leg").innerHTML="";$("note").textContent=(view!=="CMP"&&co().note)||"";window.IN_hero(sfx,null);drawBars();return;
   }
   if(view==="CMP")$("title").textContent=cfg.cmp.find(x=>x.id===ind).label+(cfg.mode==="idx"?" (구간 시작=100)":"");
