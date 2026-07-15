@@ -17,7 +17,7 @@ import json
 import datetime as dt
 import pandas as pd
 
-YEARS = 10
+YEARS = 20
 END = dt.date.today()
 START = END - dt.timedelta(days=365 * YEARS + 10)
 KRX_READY = bool(os.getenv("KRX_ID") and os.getenv("KRX_PW"))
@@ -26,8 +26,17 @@ series = {}
 
 
 def downsample(pts):
+    """2년 이전 구간만 주기별로 솎아냄: 일별 1/5, 주간 1/2, 월간 이상 원본 유지"""
     cutoff = (END - dt.timedelta(days=730)).strftime("%Y-%m-%d")
-    return [p for p in pts if p[0] < cutoff][::5] + [p for p in pts if p[0] >= cutoff]
+    old_p = [p for p in pts if p[0] < cutoff]
+    new_p = [p for p in pts if p[0] >= cutoff]
+    if len(pts) >= 2:
+        span = (dt.date.fromisoformat(pts[-1][0]) - dt.date.fromisoformat(pts[0][0])).days
+        gap = span / max(len(pts) - 1, 1)
+    else:
+        gap = 1
+    step = 1 if gap >= 20 else (2 if gap >= 5 else 5)
+    return old_p[::step] + new_p
 
 
 def add(key, label, group, s, unit=None):
@@ -171,12 +180,14 @@ try:
         ("RE_UK_BIS",   "QGBR628BIS",      "영국 주택가격(BIS 분기)",    "REALTY", "지수", None),
         ("RE_CN_BIS",   "QCNR628BIS",      "중국 주택가격(BIS 분기)",    "REALTY", "지수", None),
         ("RE_JP_BIS",   "QJPR628BIS",      "일본 주택가격(BIS 분기)",    "REALTY", "지수", None),
+        ("GDP_US_NOM",  "GDP",             "미국 명목 GDP(전년비)",      "GDP",    "%",    "yoy4"),
+        ("GDP_US_REAL", "GDPC1",           "미국 실질 GDP(전년비)",      "GDP",    "%",    "yoy4"),
     ]
     for k, sid, lb, grp, unit, tf in fred_items:
         try:
             s = fred_series(sid, trim=(tf is None))
             if tf:
-                s = yoy(s, 52 if tf == "yoy52" else 12)
+                s = yoy(s, {"yoy52": 52, "yoy4": 4}.get(tf, 12))
             add(k, lb, grp, s, unit)
         except Exception as e:
             print(f"[FAIL] {k}({sid}): {e}")
@@ -216,6 +227,29 @@ if ECOS_KEY:
             return None
         return pd.Series({pd.Timestamp(r["TIME"][:4] + "-" + r["TIME"][4:6] + "-01"):
                           float(r["DATA_VALUE"]) for r in rows}).sort_index()
+
+    def ecos_series_q(stat, item_path):
+        y0, y1 = START.year, END.year
+        for f_q, t_q in ((f"{y0}Q1", f"{y1}Q4"), (f"{y0}1", f"{y1}4")):
+            rows = ecos_rows(f"StatisticSearch/{ECOS_KEY}/json/kr/1/2000/{stat}/Q/{f_q}/{t_q}/{item_path}")
+            if not rows:
+                continue
+            out = {}
+            for r in rows:
+                t = str(r["TIME"]).upper()
+                try:
+                    if "Q" in t:
+                        y, q = int(t[:4]), int(t.split("Q")[1])
+                    elif len(t) == 5:
+                        y, q = int(t[:4]), int(t[4])
+                    else:
+                        continue
+                    out[pd.Timestamp(y, q * 3, 1)] = float(r["DATA_VALUE"])
+                except Exception:
+                    pass
+            if out:
+                return pd.Series(out).sort_index()
+        return None
 
     def ecos_items(stat):
         out = []
@@ -417,129 +451,73 @@ if ECOS_KEY:
             raise RuntimeError("시도: " + " | ".join(tried[:6]))
     except Exception as e:
         print(f"[FAIL] LIQ_KR_M2(ECOS): {str(e)[:250]}")
+
+    # 6) GDP: 국제 주요국 실질 성장률(분기)
+    try:
+        nm_g, stat_g = None, None
+        for kws in (["주요국", "GDP"], ["주요국", "경제성장률"], ["주요국", "성장률"]):
+            nm_g, stat_g = ecos_find_stat(kws)
+            if stat_g:
+                break
+        if not stat_g:
+            raise RuntimeError("국제 GDP 통계표 미발견")
+        rows_g = ecos_items(stat_g)
+        nmap_g = {str(r.get("ITEM_NAME", "")).replace(" ", ""): str(r.get("ITEM_CODE")) for r in rows_g}
+        for key, cc, label in [("GDP_KR_REAL", "한국", "한국 실질 GDP(전년비)"),
+                               ("GDP_EA_REAL", "유로존", "유로존 실질 GDP(전년비)"),
+                               ("GDP_UK_REAL", "영국", "영국 실질 GDP(전년비)"),
+                               ("GDP_CN_REAL", "중국", "중국 실질 GDP(전년비)"),
+                               ("GDP_JP_REAL", "일본", "일본 실질 GDP(전년비)")]:
+            try:
+                code = nmap_g.get(cc) or nmap_g.get("유로지역" if cc == "유로존" else cc)
+                if not code:
+                    print(f"[MISS] {key}: '{cc}' 항목 없음")
+                    continue
+                raw = ecos_series_q(stat_g, code)
+                if raw is None:
+                    raise RuntimeError("데이터 없음")
+                s = raw if raw.abs().median() < 30 else (raw.pct_change(4) * 100).dropna()
+                s = s[s.index >= pd.Timestamp(START)]
+                add(key, label, "GDP", s, "%")
+            except Exception as e:
+                print(f"[FAIL] {key}(ECOS): {str(e)[:120]}")
+        print(f"       (국제 GDP 통계표: {nm_g} / {stat_g} · 항목: {item_names(rows_g)})")
+    except Exception as e:
+        print(f"[FAIL] 국제 GDP(ECOS): {str(e)[:200]}")
+
+    # 7) 한국 명목 GDP: 국민계정 통계표 탐색(분기)
+    try:
+        cands = []
+        for r in ecos_tables():
+            nm = str(r.get("STAT_NAME", ""))
+            if "국내총생산" in nm and "명목" in nm and str(r.get("SRCH_YN", "Y")) != "N":
+                cands.append((len(nm), nm, str(r.get("STAT_CODE"))))
+        cands.sort()
+        done, tried = False, []
+        for _, nm, stat in cands[:5]:
+            path, hit, rows = ecos_item_path(stat, lambda n: "국내총생산" in n)
+            raw = ecos_series_q(stat, path)
+            if raw is None:
+                tried.append(nm)
+                continue
+            s = (raw.pct_change(4) * 100).dropna() if raw.abs().median() > 50 else raw
+            s = s[s.index >= pd.Timestamp(START)]
+            if add("GDP_KR_NOM", "한국 명목 GDP(전년비)", "GDP", s, "%"):
+                print(f"       (한국 명목 GDP: {nm} / {stat} / {path})")
+                done = True
+                break
+        if not done:
+            raise RuntimeError(("시도: " + " | ".join(tried[:5])) if tried else "명목 GDP 통계표 미발견")
+    except Exception as e:
+        print(f"[FAIL] GDP_KR_NOM(ECOS): {str(e)[:200]}")
 else:
     print("[안내] ECOS_KEY 미설정 → 한국·국제(ECOS) 지표는 건너뜁니다.")
     print("       ecos.bok.or.kr 무료 인증키 발급 후 ECOS_KEY 설정 시 수집됩니다.")
 
-# ──────────────── 국내 부동산 (한국부동산원 R-ONE, 인증키 필요) ────────────────
-REB_KEY = os.getenv("REB_KEY")
-if REB_KEY:
-    try:
-        import requests
-
-        RH = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-
-        def reb_get(url):
-            for i in range(2):
-                try:
-                    return requests.get(url, timeout=60, headers=RH).json()
-                except Exception:
-                    if i == 1:
-                        raise
-                    import time
-                    time.sleep(3)
-
-        tbls = []
-        for p in range(1, 31):
-            cu = ("https://www.reb.or.kr/r-one/openapi/SttsApiTbl.do?KEY=%s&Type=json"
-                  "&pIndex=%d&pSize=1000" % (REB_KEY, p))
-            cat = reb_get(cu)
-            body = cat.get("SttsApiTbl")
-            rows = body[1].get("row", []) if isinstance(body, list) and len(body) > 1 else []
-            if not rows:
-                break
-            tbls += [(str(r.get("STATBL_NM", "")), r.get("STATBL_ID")) for r in rows]
-        if not tbls:
-            raise RuntimeError("통계표 목록 응답 없음(인증키 확인 필요)")
-
-        def reb_candidates(kws_list, excludes):
-            hits = []
-            for kws in kws_list:
-                hits += [(nm, sid) for nm, sid in tbls
-                         if all(k in nm for k in kws)
-                         and not any(x in nm for x in excludes)]
-            hits = list(dict.fromkeys(hits))
-            def rank(h):
-                nm = h[0]
-                return (0 if "(주)" in nm else 1,
-                        0 if "아파트" in nm else 1,
-                        len(nm))
-            hits.sort(key=rank)
-            return [(nm, sid, ("WK" if "(주)" in nm else "MM")) for nm, sid in hits[:8]]
-
-        def reb_fetch(sid, cyc):
-            vals = {}
-            samples = []
-            for p in range(1, 61):
-                du = ("https://www.reb.or.kr/r-one/openapi/SttsApiTblData.do?KEY=%s"
-                      "&Type=json&pIndex=%d&pSize=1000&STATBL_ID=%s&DTACYCLE_CD=%s"
-                      % (REB_KEY, p, sid, cyc))
-                js = reb_get(du)
-                body = js.get("SttsApiTblData")
-                rows = body[1].get("row", []) if isinstance(body, list) and len(body) > 1 else []
-                if not rows:
-                    if p == 1:
-                        raise RuntimeError(str(js)[:250])
-                    break
-                for r in rows:
-                    cls = str(r.get("CLS_NM", "")) + str(r.get("CLS_FULLNM", ""))
-                    t = str(r.get("WRTTIME_IDTFR_ID", ""))
-                    if len(samples) < 8:
-                        samples.append(cls[:14] + "|" + str(r.get("ITM_NM", ""))[:10] + "|" + t)
-                    if "전국" not in cls:
-                        continue
-                    try:
-                        if len(t) == 8:
-                            ts = pd.Timestamp(t[:4] + "-" + t[4:6] + "-" + t[6:8])
-                        elif len(t) == 6 and cyc == "WK":
-                            ts = pd.Timestamp(dt.date.fromisocalendar(int(t[:4]), int(t[4:6]), 5))
-                        elif len(t) == 6:
-                            ts = pd.Timestamp(t[:4] + "-" + t[4:6] + "-01")
-                        else:
-                            continue
-                        vals[ts] = float(r["DTA_VAL"])
-                    except Exception:
-                        pass
-            if len(vals) < 5:
-                raise RuntimeError(f"전국 데이터 {len(vals)}점(비정상) · 표본: " + " / ".join(samples[:4]))
-            s = pd.Series(vals).sort_index()
-            age = (pd.Timestamp(END) - s.index[-1]).days
-            if age > 90:
-                raise RuntimeError(f"갱신 중단 추정(최근값 {s.index[-1].date()}, {age}일 경과)")
-            s = s[s.index >= pd.Timestamp(START)]
-            if len(s) < 5:
-                raise RuntimeError("조회창 내 데이터 부족")
-            return s
-
-        for key, base, kws in [
-            ("RE_KR_APT", "전국 아파트 매매가격지수", [["아파트", "매매가격지수"], ["매매가격지수"]]),
-            ("RE_KR_JS",  "전국 아파트 전세가격지수", [["아파트", "전세가격지수"], ["전세가격지수"]]),
-        ]:
-            excl = ["규모별", "연령별", "준전세", "월세", "수급", "거래"]
-            cands = reb_candidates(kws, excl)
-            if not cands:
-                cand = [n for n, _ in tbls if kws[-1][0][:4] in n][:10]
-                print(f"[FAIL] {key}(부동산원): 통계표 미발견 · 후보: " + " | ".join(cand))
-                continue
-            done, errs = False, []
-            for nm, sid, cyc in cands:
-                try:
-                    s = reb_fetch(sid, cyc)
-                    print(f"[REB]  통계표 채택: {nm} ({sid}, {cyc})")
-                    add(key, base + ("(주간·부동산원)" if cyc == "WK" else "(월간·부동산원)"), "REALTY", s, "지수")
-                    done = True
-                    break
-                except Exception as e:
-                    errs.append(f"{nm}({cyc}): {str(e)[:90]}")
-            if not done:
-                print(f"[FAIL] {key}(부동산원): " + " | ".join(errs[:4]))
-    except Exception as e:
-        print(f"[FAIL] 부동산원 목록 조회: {str(e)[:250]}")
-else:
-    print("[안내] REB_KEY 미설정 → 부동산원 아파트 매매·전세지수는 건너뜁니다.")
-
-# ── 폴백: 부동산원 API 미수집 시 한국은행 ECOS 등재 주택지수 사용(부동산원 우선, KB 후순위) ──
-if os.getenv("ECOS_KEY") and ("RE_KR_APT" not in series or "RE_KR_JS" not in series):
+# ──────────────── 국내 부동산 (한국은행 ECOS 등재 주택가격지수) ────────────────
+# 로컬·클라우드 어디서나 동일한 데이터를 쓰도록 ECOS로 일원화
+# (부동산원 R-ONE API는 해외 서버 접속을 차단해 클라우드 수집이 불가)
+if os.getenv("ECOS_KEY"):
     try:
         def ecos_house_cands(kw):
             out = []
@@ -555,8 +533,6 @@ if os.getenv("ECOS_KEY") and ("RE_KR_APT" not in series or "RE_KR_JS" not in ser
             ("RE_KR_APT", "매매가격", "전국 아파트 매매가격지수"),
             ("RE_KR_JS",  "전세가격", "전국 아파트 전세가격지수"),
         ]:
-            if key in series:
-                continue
             done, errs = False, []
             for nm, stat in ecos_house_cands(kw):
                 try:
@@ -568,15 +544,87 @@ if os.getenv("ECOS_KEY") and ("RE_KR_APT" not in series or "RE_KR_JS" not in ser
                     s = raw[raw.index >= pd.Timestamp(START)]
                     src_tag = "부동산원" if "부동산원" in nm else ("KB" if "KB" in nm.upper() else "ECOS")
                     if add(key, base + f"(월간·{src_tag})", "REALTY", s, "지수"):
-                        print(f"       ({key} ECOS 폴백 채택: {nm} / {stat} / {path})")
+                        print(f"       ({key} 채택: {nm} / {stat} / {path})")
                         done = True
                         break
                 except Exception as e:
                     errs.append(f"{nm}: {str(e)[:60]}")
             if not done:
-                print(f"[FAIL] {key}(ECOS 폴백): " + " | ".join(errs[:4]))
+                print(f"[FAIL] {key}(ECOS): " + " | ".join(errs[:4]))
     except Exception as e:
-        print(f"[FAIL] ECOS 주택지수 폴백: {str(e)[:200]}")
+        print(f"[FAIL] 주택가격지수(ECOS): {str(e)[:200]}")
+else:
+    print("[안내] ECOS_KEY 미설정 → 한국 주택가격지수는 건너뜁니다.")
+
+# ──────────────── 주요 기사 수집 (해외 경제 RSS 3종, 누적) ────────────────
+try:
+    import requests
+    import xml.etree.ElementTree as ET
+    import json as _json
+    import re as _re
+    import hashlib
+
+    feeds = [
+        ("https://www.cnbc.com/id/100003114/device/rss/rss.html", "CNBC"),
+        ("https://feeds.content.dowjones.io/public/rss/mw_topstories", "MarketWatch"),
+        ("https://finance.yahoo.com/news/rssindex", "Yahoo Finance"),
+    ]
+    today = END.isoformat()
+    buckets = []
+    for furl, fsrc in feeds:
+        try:
+            xmls = requests.get(furl, timeout=30,
+                                headers={"User-Agent": "Mozilla/5.0"}).content
+            root = ET.fromstring(xmls)
+            lst = []
+            for it in root.iter("item"):
+                t = (it.findtext("title") or "").strip()
+                u = (it.findtext("link") or "").strip()
+                if not t or not u.startswith("http"):
+                    continue
+                iid = hashlib.md5(t.encode("utf-8")).hexdigest()[:12]
+                lst.append({"d": today, "t": t, "s": fsrc, "u": u, "id": iid})
+                if len(lst) >= 6:
+                    break
+            buckets.append(lst)
+        except Exception as e:
+            print(f"[MISS] 기사 피드({fsrc}): {str(e)[:80]}")
+    fresh, idx, fseen = [], 0, set()
+    while len(fresh) < 10:
+        added = False
+        for b in buckets:
+            if idx < len(b) and len(fresh) < 10 and b[idx]["id"] not in fseen:
+                fresh.append(b[idx])
+                fseen.add(b[idx]["id"])
+                added = True
+        if not added:
+            break
+        idx += 1
+    olds = []
+    try:
+        with open("data_news.js", encoding="utf-8") as fp:
+            m = _re.search(r"=\s*(\{.*\});?\s*$", fp.read(), _re.S)
+            if m:
+                olds = _json.loads(m.group(1)).get("items", [])
+    except Exception:
+        pass
+    seen = {o.get("id") for o in olds}
+    today_cnt = sum(1 for o in olds if o.get("d") == today)
+    adds = []
+    for n in fresh:
+        if n["id"] in seen or today_cnt + len(adds) >= 10:
+            continue
+        adds.append(n)
+    items = (adds + olds)[:1200]
+    with open("data_news.js", "w", encoding="utf-8") as fp:
+        fp.write("window.NEWS_DATA=" + _json.dumps(
+            {"generated": today, "items": items}, ensure_ascii=False) + ";")
+    print(f"[NEWS] 신규 {len(adds)}건 · 누적 {len(items)}건 저장(data_news.js)")
+except Exception as e:
+    print(f"[FAIL] 주요 기사 수집: {str(e)[:200]}")
+    if not os.path.exists("data_news.js"):
+        with open("data_news.js", "w", encoding="utf-8") as fp:
+            fp.write('window.NEWS_DATA={"generated":"","items":[]};')
 
 # ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
 if KRX_READY:
@@ -633,6 +681,19 @@ if KRX_READY:
             "KQ_MACH": "기계", "KQ_MFG": "제조", "KQ_TRAN": "운송장비",
             "KQ_ENT": "오락",
         }, "")
+
+        # ── 관심 주가 (직접 추가 관리) ──
+        # 추가 방법: "키": ("종목코드", "표시명") 한 줄 추가 → 다음 수집부터 자동 반영
+        watch = {
+            "W_NAVER": ("035420", "네이버"),
+            "W_SKSIG": ("260870", "SK시그넷"),
+        }
+        for k, (code, lb) in watch.items():
+            try:
+                s = stock.get_market_ohlcv_by_date(f, t, code)["종가"]
+                add(k, lb, "WATCH", s, "원")
+            except Exception as e:
+                print(f"[FAIL] {k}({code}): {e}")
     except Exception as e:
         print("[국내 수집 실패]", e)
 else:

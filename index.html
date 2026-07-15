@@ -85,6 +85,17 @@
   .stbl td:first-child{font-family:inherit;font-weight:400;text-align:left;color:#5E6A72;line-height:1.3;word-break:keep-all}
   .stbl tr.rw{cursor:pointer}
   .stbl tr.rw:hover td{background:#F3F1EA}
+  .ntbl{width:100%;border-collapse:collapse;font-size:12.5px}
+  .ntbl th{font-family:var(--mono);font-weight:700;color:#98A1A9;text-align:left;padding:4px 8px 8px;border-bottom:1px solid #E3E0D6}
+  .ntbl td{padding:8px;border-bottom:1px solid #EFEDE5;vertical-align:top}
+  .ntbl td.nd{font-family:var(--mono);color:#98A1A9;white-space:nowrap}
+  .ntbl td.ns{color:#5E6A72}
+  .ntbl a{color:inherit;text-decoration:none}
+  .ntbl a:hover{text-decoration:underline}
+  .nstar{border:none;background:none;cursor:pointer;font-size:16px;line-height:1;color:#C8C4B8;padding:0}
+  .nstar.on{color:#C9A227}
+  .norg{font-size:10.5px;color:#98A1A9;margin-left:8px;text-decoration:none;white-space:nowrap}
+  .norg:hover{text-decoration:underline}
   button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
   @media (max-width:920px){.kpis{grid-template-columns:repeat(4,1fr)}.main{grid-template-columns:1fr}}
   @media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.custom{margin-left:0}}
@@ -99,20 +110,24 @@
   <nav class="pnav" id="gnav">
     <button class="gbtn on" data-g="A">투자 환경</button>
     <button class="gbtn" data-g="B">자산 시장</button>
+    <button class="gbtn" data-g="C">주요 기사</button>
   </nav>
   <nav class="pnav sub" id="snav">
     <button id="navE" data-g="A">물가</button>
     <button id="navU" data-g="A">고용</button>
+    <button id="navG" data-g="A">GDP</button>
     <button id="navR" data-g="A">기준금리</button>
     <button id="navL" data-g="A">유동성</button>
     <button id="navF" data-g="A">환율</button>
-    <button id="navI" data-g="B">종합지수</button>
-    <button id="navS" data-g="B">산업별</button>
-    <button id="navT" data-g="B">ETF</button>
+    <button id="navI" data-g="B">종합주가지수</button>
+    <button id="navS" data-g="B">산업별 주가지수</button>
+    <button id="navT" data-g="B">관심 ETF</button>
+    <button id="navW" data-g="B">관심 주가</button>
     <button id="navB" data-g="B">채권</button>
     <button id="navC" data-g="B">원자재</button>
     <button id="navP" data-g="B">부동산</button>
-    <button id="navX" data-g="B">가상자산</button>
+    <button id="navX" data-g="B">가상화폐</button>
+    <button id="navN" data-g="C">주요 기사</button>
   </nav>
 
   <div class="layout">
@@ -516,6 +531,105 @@
         </footer>
       </section>
 
+      <!-- ══════════ GDP ══════════ -->
+      <section id="secG" style="display:none">
+        <div class="controls" id="ctryG"></div>
+        <div class="controls" id="chipsG"></div>
+        <div class="controls" id="rangesG">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn" data-r="1y">1년</button>
+          <button class="rbtn on" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0G" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1G" aria-label="종료일">
+            <button class="go" id="goG">적용</button>
+          </div>
+        </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">요약</h2>
+          <div id="barsG"></div>
+          <div class="note">행을 누르면 해당 지표가 선택됩니다</div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleG">실질 GDP</h2>
+          <div class="hero" id="heroG"></div>
+          <div class="chart-wrap">
+            <svg class="big" id="chartG" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipG"></div>
+          </div>
+          <div class="legend" id="legG"></div>
+          <div class="note" id="noteG"></div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 미국은 BEA(FRED) 분기 통계, 그 외 국가는 한국은행 ECOS 국제통계 기준 분기 지표이며 전년동기비(%)로 표시합니다.</div>
+          <div><b>해석</b> · 실질 GDP는 물가 효과를 제거한 성장의 '양', 명목 GDP는 물가를 포함한 '금액'으로 기업 매출·세수와 직결됩니다. 명목은 소스 제약으로 한국·미국만 제공됩니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ 관심 주가 ══════════ -->
+      <section id="secW" style="display:none">
+        <div class="controls" id="chipsW"></div>
+        <div class="controls" id="rangesW">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn" data-r="1y">1년</button>
+          <button class="rbtn on" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0W" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1W" aria-label="종료일">
+            <button class="go" id="goW">적용</button>
+          </div>
+        </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">요약</h2>
+          <div id="barsW"></div>
+          <div class="note">행을 누르면 해당 종목이 선택됩니다</div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleW">관심 주가</h2>
+          <div class="hero" id="heroW"></div>
+          <div class="chart-wrap">
+            <svg class="big" id="chartW" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipW"></div>
+          </div>
+          <div class="legend" id="legW"></div>
+          <div class="note" id="noteW"></div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · KRX 정보데이터시스템 일별 종가(코스피·코스닥·코넥스)이며, 비교 시 구간 시작=100으로 재계산합니다.</div>
+          <div><b>관리</b> · 종목 추가·삭제는 수집기(indices_collector.py)의 watch 목록에서 한 줄로 관리합니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ 주요 기사 ══════════ -->
+      <section id="secN" style="display:none">
+        <div class="controls" id="chipsN"></div>
+        <div class="main" style="grid-template-columns:1fr">
+        <div class="panel">
+          <h2 class="ptitle" id="titleN">주요 기사</h2>
+          <div id="newsList"></div>
+          <div class="note">제목을 누르면 한국어 번역본(구글 번역 경유)이, [원문]을 누르면 영어 원문이 새 창에서 열립니다. 별표(★)는 즐겨찾기 저장(현재 브라우저에 보관)입니다. 일부 매체는 번역 프록시를 차단해 원문만 열릴 수 있습니다.</div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · CNBC · MarketWatch · Yahoo Finance 상위 기사를 매 자동 수집 시 최대 10건씩 목록에 누적합니다.</div>
+          <div><b>고지</b> · 기사 저작권은 각 언론사에 있으며, 본 목록은 제목과 출처 링크만 제공합니다.</div>
+        </footer>
+      </section>
+
       <!-- ══════════ 09 부동산 ══════════ -->
       <section id="secP" style="display:none">
         <div class="controls" id="ctryP"></div>
@@ -552,7 +666,7 @@
         </div>
         </div>
         <footer class="foot">
-          <div><b>데이터</b> · 미국 주택가격은 S&P 케이스-실러(월별, 약 2개월 시차), 모기지 금리는 Freddie Mac(주간), 한국은 부동산원 R-ONE 또는 한국은행 ECOS 등재 지수(부동산원 우선, KB 후순위)로, 채택 출처·주기가 지표명에 표기됩니다. 유로존·영국·중국·일본은 BIS 분기·실질 지수입니다.</div>
+          <div><b>데이터</b> · 미국 주택가격은 S&P 케이스-실러(월별, 약 2개월 시차), 모기지 금리는 Freddie Mac(주간), 한국은 한국은행 ECOS 등재 주택가격지수(월간, 현재 KB 지수 채택)로 로컬·클라우드 어디서나 동일합니다. 유로존·영국·중국·일본은 BIS 분기·실질 지수입니다.</div>
           <div><b>유의</b> · 부동산원 지수는 표본·호가 조사 기반이라 실거래 체감과 다를 수 있습니다. 수집에는 R-ONE 인증키(REB_KEY)가 필요합니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
@@ -661,6 +775,7 @@
   </div>
 </div>
 <script src="data_indices.js"></script>
+<script src="data_news.js"></script>
 <script>
 "use strict";
 // ══════════ 공통 ══════════
@@ -758,7 +873,7 @@ ECON_KR_CPI:{t:"한국 CPI(전년비)",b:"한국은행 ECOS 공식 통계(통계
 G_RE:{t:"부동산",b:"주택가격과 모기지 금리로 부동산 사이클을 추적합니다. 가격지수는 발표 시차가 커(월~분기) 시장 변화가 늦게 반영됩니다."},
 RE_US_CS:{t:"미국 주택가격(케이스-실러)",b:"S&P 전국 지수(월별, 약 2개월 시차). 반복매매 방식으로 실거래 기반이며, 모기지 금리와 재고가 주요 변수입니다."},
 RE_US_MORT:{t:"미국 모기지 30년 금리",b:"Freddie Mac 주간 조사(FRED). 미 국채 10년에 연동되며 주택 구매력과 거래량에 직결됩니다."},
-RE_KR_APT:{t:"전국 아파트 매매가격지수",b:"부동산원 R-ONE(주간·월간) 또는 한국은행 ECOS 등재 지수(부동산원·KB)를 자동 채택하며, 출처·주기가 지표명에 표기됩니다. 표본 조사 기반이라 실거래 체감과 다를 수 있습니다."},
+RE_KR_APT:{t:"전국 아파트 매매가격지수",b:"한국은행 ECOS 등재 KB 전국 아파트 매매가격지수(월간). 호가·표본 기반이라 실거래 체감과 다를 수 있으며 20년 장기 흐름 비교에 적합합니다."},
 G_LIQ:{t:"유동성",b:"시중 통화량과 중앙은행 자산으로 자금의 팽창·수축을 추적합니다. 유동성 확장기는 위험자산에 우호적, 수축기는 부담 요인으로 해석되곤 합니다."},
 LIQ_US_M2:{t:"미국 M2(전년비)",b:"FRED(M2SL) 월별을 전년동월비로 변환. 팬데믹기 급증 후 2022~23년 사상 첫 역성장을 기록했으며, 물가·자산가격의 선행 신호로 참고됩니다."},
 LIQ_KR_M2:{t:"한국 M2(전년비)",b:"한국은행 ECOS(광의통화 M2 말잔) 월별을 전년동월비로 변환. 대출·부동산 경기와 연동성이 높습니다. ECOS 인증키 필요."},
@@ -775,9 +890,17 @@ ECON_UK_CPI:{t:"영국 CPI(전년비)",b:"한국은행 ECOS 국제통계 경유 
 ECON_CN_CPI:{t:"중국 CPI(전년비)",b:"한국은행 ECOS 국제통계 경유 월별 소비자물가. 낮은 물가는 내수 부진·디플레이션 압력 신호로 해석되곤 합니다."},
 ECON_JP_UNEMP:{t:"일본 실업률",b:"한국은행 ECOS 국제통계 경유(계절조정). 구조적으로 낮은 수준이 특징입니다."},
 ECON_UK_UNEMP:{t:"영국 실업률",b:"한국은행 ECOS 국제통계 경유(계절조정). 임금 상승률과 함께 BOE가 주시하는 지표입니다."},
+G_CPI:{t:"소비자물가지수(CPI)",b:"가계 소비 품목 가격의 전년동월비 상승률. 중앙은행 목표(통상 2%) 대비 수준이 기준금리 방향을 좌우하는 핵심 지표입니다."},
+G_CORE:{t:"근원 CPI",b:"변동성이 큰 에너지·식료품(한국은 농산물·석유류)을 제외한 물가. 기조적 물가 흐름 판단에 사용되며 통화정책이 더 주시합니다."},
+G_UNEMP:{t:"실업률",b:"경제활동인구 중 실업자 비율(계절조정). 급격한 상승은 침체 신호로, 저점 대비 0.5%p 상승(삼의 법칙)이 경고선으로 통용됩니다."},
+G_M2:{t:"M2(광의통화)",b:"현금·예금·MMF 등 시중 유동성 총량의 전년비 증가율. 자산시장으로 유입될 수 있는 자금 여력의 근간입니다."},
+G_CBA:{t:"중앙은행 총자산",b:"양적완화·긴축 규모를 보여주는 중앙은행 대차대조표의 전년비. 증가는 유동성 공급(QE), 감소는 회수(QT) 국면을 뜻합니다."},
+G_GDPR:{t:"실질 GDP(전년비)",b:"물가 효과를 제거한 경제 성장률(전년동기비). 잠재성장률 대비 수준이 경기 과열·침체 판단의 기준입니다."},
+G_GDPN:{t:"명목 GDP(전년비)",b:"물가를 포함한 성장률로 기업 매출·세수·부채비율의 분모와 직결됩니다. 실질과의 격차는 물가 압력을 시사합니다."},
+G_WATCH:{t:"관심 주가",b:"직접 등록한 개별 종목의 일별 종가(KRX)입니다. 비교 시 구간 시작=100으로 재계산하며, 절대가는 개별 선택 시 표시됩니다."},
 LIQ_EA_CB:{t:"ECB 총자산(전년비)",b:"FRED(ECBASSETSW) 주간 대차대조표의 전년동주비. 유로존 유동성 공급의 원천 지표입니다."},
 LIQ_JP_CB:{t:"일본은행 총자산(전년비)",b:"FRED(JPNASSETS) 월별 대차대조표의 전년동월비. 초완화 정책의 규모 변화를 보여줍니다."},
-RE_KR_JS:{t:"전국 아파트 전세가격지수",b:"매매와 동일한 자동 채택 규칙을 따르며 출처·주기가 지표명에 표기됩니다. 전세는 실수요 중심이라 매매 수요의 선행·동행 신호로 활용됩니다."},
+RE_KR_JS:{t:"전국 아파트 전세가격지수",b:"한국은행 ECOS 등재 KB 전국 아파트 전세가격지수(월간). 전세는 실수요 중심이라 매매 수요의 선행·동행 신호로 활용됩니다."},
 RE_EA_BIS:{t:"유로존 주택가격",b:"BIS 분기·실질(물가 조정) 지수. 발표 시차가 커 장기 흐름 비교용입니다."},
 RE_UK_BIS:{t:"영국 주택가격",b:"BIS 분기·실질 지수. 모기지 금리 민감도가 높은 시장입니다."},
 RE_CN_BIS:{t:"중국 주택가격",b:"BIS 분기·실질 지수. 정부 정책·개발사 신용 이슈의 영향이 큰 시장입니다."},
@@ -1863,7 +1986,7 @@ function buildChips(){
   mkBtn(cfg.allLabel||"전체 비교","ALL",cfg.infoKey);
   ks.forEach(k=>mkBtn(s[k].label,k,k));
   if(!ks.length){
-    el.innerHTML='<span class="note" style="margin:0">수집 파일에 '+cfg.name+' 데이터가 없습니다. indices_collector.py(v7) 실행 후 갱신하십시오.</span>';
+    el.innerHTML='<span class="note" style="margin:0">'+(cfg.emptyMsg||('수집 파일에 '+cfg.name+' 데이터가 없습니다. 수집기 실행 후 갱신하십시오.'))+'</span>';
   }
 }
 function draw(){
@@ -2087,10 +2210,10 @@ function rangeWindow(){
 function co(){return cfg.countries.find(c=>c.cc===view);}
 function buildCtry(){
   const el=$("ctry");el.innerHTML="";
-  const mk=(label,val,on)=>{const b=document.createElement("button");b.className="rbtn"+(on?" on":"");b.textContent=label;
+  const mk=(label,val,on,qk)=>{const b=document.createElement("button");b.className="rbtn"+(on?" on":"");b.innerHTML=label+(qk?' <span class="qm" data-k="'+qk+'">?</span>':'');
     b.onclick=()=>{view=val;sel="ALL";ind=cfg.cmp?cfg.cmp[0].id:null;buildCtry();buildChips();draw();};el.appendChild(b);};
-  if(cfg.cmp)mk(cfg.cmpLabel||"국가 비교","CMP",view==="CMP");
-  cfg.countries.forEach(c=>mk(c.label,c.cc,view===c.cc));
+  if(cfg.cmp)mk(cfg.cmpLabel||"국가 비교","CMP",view==="CMP",null);
+  cfg.countries.forEach(c=>mk(c.label,c.cc,view===c.cc,c.infoKey||null));
 }
 function buildChips(){
   const el=$("chips");el.innerHTML="";
@@ -2192,17 +2315,17 @@ return{init};
 }
 const ECO=IN_ctryTab("E",{mode:"raw",inverted:true,defView:"CPI",
  countries:[
-  {cc:"CPI",label:"CPI",items:[{k:"ECON_KR_CPI",label:"한국"},{k:"ECON_US_CPI",label:"미국"},{k:"ECON_EA_CPI",label:"유로존"},{k:"ECON_UK_CPI",label:"영국"},{k:"ECON_CN_CPI",label:"중국"},{k:"ECON_JP_CPI",label:"일본"}],note:"CPI 데이터 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
-  {cc:"CORE",label:"근원 CPI",items:[{k:"ECON_KR_CORE",label:"한국"},{k:"ECON_US_CORE",label:"미국"}],note:"근원 CPI 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."}],
+  {cc:"CPI",label:"CPI",infoKey:"G_CPI",items:[{k:"ECON_KR_CPI",label:"한국"},{k:"ECON_US_CPI",label:"미국"},{k:"ECON_EA_CPI",label:"유로존"},{k:"ECON_UK_CPI",label:"영국"},{k:"ECON_CN_CPI",label:"중국"},{k:"ECON_JP_CPI",label:"일본"}],note:"CPI 데이터 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
+  {cc:"CORE",label:"근원 CPI",infoKey:"G_CORE",items:[{k:"ECON_KR_CORE",label:"한국"},{k:"ECON_US_CORE",label:"미국"}],note:"근원 CPI 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."}],
  allNote:"국가별 물가 상승률(전년동월비, %)을 겹쳐 비교합니다. 국가별 발표 시차가 있습니다."});
 const EMP=IN_ctryTab("U",{mode:"raw",inverted:true,defView:"UNEMP",
  countries:[
-  {cc:"UNEMP",label:"실업률",items:[{k:"ECON_KR_UNEMP",label:"한국"},{k:"ECON_US_UNEMP",label:"미국"},{k:"ECON_JP_UNEMP",label:"일본"},{k:"ECON_UK_UNEMP",label:"영국"}],note:"실업률 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."}],
+  {cc:"UNEMP",label:"실업률",infoKey:"G_UNEMP",items:[{k:"ECON_KR_UNEMP",label:"한국"},{k:"ECON_US_UNEMP",label:"미국"},{k:"ECON_JP_UNEMP",label:"일본"},{k:"ECON_UK_UNEMP",label:"영국"}],note:"실업률 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."}],
  allNote:"국가별 실업률(%, 계절조정)을 겹쳐 비교합니다."});
 const LIQ=IN_ctryTab("L",{mode:"raw",inverted:true,defView:"M2",
  countries:[
-  {cc:"M2",label:"M2",items:[{k:"LIQ_KR_M2",label:"한국"},{k:"LIQ_US_M2",label:"미국"}],note:"M2 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
-  {cc:"CB",label:"중앙은행 총자산",items:[{k:"LIQ_US_CB",label:"미국(연준)"},{k:"LIQ_EA_CB",label:"유로존(ECB)"},{k:"LIQ_JP_CB",label:"일본(일본은행)"}]}],
+  {cc:"M2",label:"M2",infoKey:"G_M2",items:[{k:"LIQ_KR_M2",label:"한국"},{k:"LIQ_US_M2",label:"미국"}],note:"M2 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
+  {cc:"CB",label:"중앙은행 총자산",infoKey:"G_CBA",items:[{k:"LIQ_US_CB",label:"미국(연준)"},{k:"LIQ_EA_CB",label:"유로존(ECB)"},{k:"LIQ_JP_CB",label:"일본(일본은행)"}]}],
  allNote:"국가별 전년 대비 증가율(%)입니다. 음수는 통화·자산 축소(긴축) 국면을 뜻합니다.",
  itemNote:{LIQ_US_CB:"주간 수치의 전년동주비입니다. 음수면 양적긴축(QT) 진행을 뜻합니다.",LIQ_KR_M2:"한국은행 ECOS 기준 월별 통화량입니다."}});
 const RLT=IN_ctryTab("P",{mode:"idx",defView:"KR",
@@ -2216,7 +2339,7 @@ const RLT=IN_ctryTab("P",{mode:"idx",defView:"KR",
  cmp:[{id:"PRICE",label:"주택가격 비교",keys:{KR:"RE_KR_APT",US:"RE_US_CS",EA:"RE_EA_BIS",UK:"RE_UK_BIS",CN:"RE_CN_BIS",JP:"RE_JP_BIS"}}],
  cmpNote:"국가별 기준·주기가 달라(표본 조사, 월별 실거래, 분기 실질) 구간 시작=100 상대 비교만 유효합니다.",
  allNote:"단위가 달라 구간 시작=100으로 재계산해 비교합니다. 절대값은 개별 선택 시 표시됩니다.",
- itemNote:{RE_KR_APT:"표본 조사(호가 반영) 기반 지수로 실거래 체감과 다를 수 있습니다. 채택 출처는 지표명에 표기됩니다.",RE_KR_JS:"전세가격은 매매 수요의 선행·동행 판단에 활용됩니다. 채택 출처는 지표명에 표기됩니다.",RE_US_CS:"약 2개월 발표 시차가 있습니다."}});
+ itemNote:{RE_KR_APT:"KB 표본 조사(호가 반영) 기반 월간 지수로 실거래 체감과 다를 수 있습니다.",RE_KR_JS:"전세가격은 매매 수요의 선행·동행 판단에 활용됩니다.",RE_US_CS:"약 2개월 발표 시차가 있습니다."}});
 const BND=IN_ctryTab("B",{mode:"raw",defView:"US",cmpLabel:"국가 비교",
  countries:[
   {cc:"US",label:"미국",items:[{k:"BOND_US2Y",label:"국채 2년"},{k:"BOND_US10Y",label:"국채 10년"},{k:"BOND_US30Y",label:"국채 30년"},{k:"BOND_SPREAD",label:"장단기금리차(10y-2y)"}]},
@@ -2226,12 +2349,63 @@ const BND=IN_ctryTab("B",{mode:"raw",defView:"US",cmpLabel:"국가 비교",
  allNote:"해당 국가의 국채 금리(%)를 겹쳐 표시합니다. 0선 아래의 장단기금리차는 수익률곡선 역전 구간입니다.",
  itemNote:{BOND_SPREAD:"음수(역전)는 역사적으로 경기침체에 선행하는 경향이 있었으나 시차가 불규칙합니다.",BOND_KR10Y:"OECD 월별 집계라 발표 시차가 있습니다. 일별 확인은 금융투자협회 채권정보를 참고하십시오."}});
 
+const GDP=IN_ctryTab("G",{mode:"raw",inverted:true,defView:"REAL",
+ countries:[
+  {cc:"REAL",label:"실질 GDP",infoKey:"G_GDPR",items:[{k:"GDP_KR_REAL",label:"한국"},{k:"GDP_US_REAL",label:"미국"},{k:"GDP_EA_REAL",label:"유로존"},{k:"GDP_UK_REAL",label:"영국"},{k:"GDP_CN_REAL",label:"중국"},{k:"GDP_JP_REAL",label:"일본"}],note:"GDP 수집이 확인되지 않았습니다. 수집기 로그를 확인하십시오."},
+  {cc:"NOM",label:"명목 GDP",infoKey:"G_GDPN",items:[{k:"GDP_KR_NOM",label:"한국"},{k:"GDP_US_NOM",label:"미국"}],note:"명목 GDP는 소스 제약으로 한국·미국만 제공됩니다."}],
+ allNote:"국가별 GDP 성장률(전년동기비, %)을 겹쳐 비교합니다. 분기 지표라 발표 시차가 큽니다."});
+
+const WCH=IN_simpleTab("W",{group:"WATCH",name:"관심 주가",mode:"idx",infoKey:"G_WATCH",
+ emptyMsg:"등록된 관심 종목이 없습니다. 추가할 종목명(또는 종목코드)을 알려주시면 수집기에 등록해 드립니다.",
+ allNote:"종목별 가격 수준이 달라 구간 시작=100으로 재계산해 비교합니다. 절대가는 개별 선택 시 표시됩니다.",
+ itemNote:{W_SKSIG:"코넥스 종목은 유동성이 낮아 가격 변동·호가 공백이 클 수 있습니다."}});
+const NWS=(function(){
+let mode="ALL",inited=false;
+function favs(){try{return JSON.parse(localStorage.getItem("IN_NEWS_FAV")||"[]");}catch(e){return[];}}
+function setFavs(a){try{localStorage.setItem("IN_NEWS_FAV",JSON.stringify(a));}catch(e){}}
+function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function buildChips(){
+  const el=document.getElementById("chipsN");el.innerHTML="";
+  [["ALL","전체"],["FAV","즐겨찾기 ★"]].forEach(p=>{
+    const b=document.createElement("button");
+    b.className="rbtn"+(mode===p[0]?" on":"");b.textContent=p[1];
+    b.onclick=()=>{mode=p[0];buildChips();draw();};el.appendChild(b);
+  });
+}
+function draw(){
+  const el=document.getElementById("newsList");
+  const D=(window.NEWS_DATA&&window.NEWS_DATA.items)?window.NEWS_DATA.items:[];
+  const fv=favs();
+  const rows=(mode==="FAV")?D.filter(x=>fv.indexOf(x.id)>=0):D;
+  document.getElementById("titleN").textContent=(mode==="FAV")?"즐겨찾기 기사":"주요 기사";
+  if(!rows.length){
+    el.innerHTML='<div class="note" style="margin:8px 0">'+(mode==="FAV"?"즐겨찾기한 기사가 없습니다. 목록에서 별표를 눌러 추가하십시오.":"수집된 기사가 없습니다. 다음 자동 수집 후 표시됩니다.")+'</div>';
+    return;
+  }
+  let h='<table class="ntbl"><thead><tr><th style="width:92px">날짜</th><th>기사 제목</th><th style="width:170px">언론사</th><th style="width:34px">★</th></tr></thead><tbody>';
+  let prev="";
+  rows.forEach(x=>{
+    const on=fv.indexOf(x.id)>=0;
+    const d=(x.d===prev&&mode!=="FAV")?"":x.d;prev=x.d;
+    h+='<tr><td class="nd">'+d+'</td><td><a href="https://translate.google.com/translate?sl=auto&tl=ko&u='+encodeURIComponent(x.u)+'" target="_blank" rel="noopener">'+esc(x.t)+'</a><a class="norg" href="'+esc(x.u)+'" target="_blank" rel="noopener">원문</a></td><td class="ns">'+esc(x.s)+'</td><td><button class="nstar'+(on?" on":"")+'" data-id="'+x.id+'" aria-label="즐겨찾기">'+(on?"★":"☆")+'</button></td></tr>';
+  });
+  h+='</tbody></table>';
+  el.innerHTML=h;
+  el.querySelectorAll(".nstar").forEach(b=>{
+    b.onclick=()=>{const id=b.getAttribute("data-id");let a=favs();const i=a.indexOf(id);
+      if(i>=0)a.splice(i,1);else a.push(id);setFavs(a);draw();};
+  });
+}
+function init(){if(!inited){inited=true;}buildChips();draw();}
+return{init};
+})();
+
 // ══════════ 탭 전환 (2대 분류 · 12개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),P:document.getElementById("secP"),L:document.getElementById("secL")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),P:document.getElementById("navP"),L:document.getElementById("navL")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),W:document.getElementById("secW"),N:document.getElementById("secN"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),P:document.getElementById("secP"),L:document.getElementById("secL")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),W:document.getElementById("navW"),N:document.getElementById("navN"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),P:document.getElementById("navP"),L:document.getElementById("navL")};
 const stamp=document.getElementById("stamp");
-const GROUPS={A:["E","U","R","L","F"],B:["I","S","T","B","C","P","X"]};
+const GROUPS={A:["E","U","G","R","L","F"],B:["I","S","T","W","B","C","P","X"],C:["N"]};
 function groupOf(k){for(const g in GROUPS){if(GROUPS[g].indexOf(k)>=0)return g;}return "A";}
 let fxStarted=false;
 function show(k){
@@ -2242,16 +2416,19 @@ function show(k){
   const gen=window.IDX_DATA?" · 데이터 생성일 "+window.IDX_DATA.generated:"";
   if(k==="E"){stamp.textContent="물가 · 수집 파일 기반(FRED·ECOS)"+gen;ECO.init();}
   if(k==="U"){stamp.textContent="고용 · 수집 파일 기반(FRED·ECOS)"+gen;EMP.init();}
+  if(k==="G"){stamp.textContent="GDP · 수집 파일 기반(FRED·ECOS)"+gen;GDP.init();}
   if(k==="R"){stamp.textContent="기준금리(통화정책) · 확인일 2026-07-07 · 내장 데이터";}
   if(k==="L"){stamp.textContent="유동성·통화량 · 수집 파일 기반(FRED·ECOS)"+gen;LIQ.init();}
   if(k==="F"){stamp.textContent="환율 · ECB 일별 기준환율";if(!fxStarted){fxStarted=true;FX.init();}}
   if(k==="I"){stamp.textContent="종합 주가지수 · 수집 파일 기반"+gen;IDX.init();}
   if(k==="S"){stamp.textContent="산업별 주가지수 · 수집 파일 기반"+gen;SEC.init();}
-  if(k==="T"){stamp.textContent="ETF · 관심 종목 직접 관리"+gen;ETF.init();}
+  if(k==="T"){stamp.textContent="관심 ETF · 관심 종목 직접 관리"+gen;ETF.init();}
+  if(k==="W"){stamp.textContent="관심 주가 · 관심 종목 직접 관리"+gen;WCH.init();}
+  if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
   if(k==="B"){stamp.textContent="채권 금리 · 수집 파일 기반(FRED)"+gen;BND.init();}
   if(k==="C"){stamp.textContent="원자재 · 수집 파일 기반"+gen;CMD.init();}
-  if(k==="P"){stamp.textContent="부동산 · 수집 파일 기반(FRED·부동산원·ECOS)"+gen;RLT.init();}
-  if(k==="X"){stamp.textContent="가상자산 · 수집 파일 기반"+gen;CRY.init();}
+  if(k==="P"){stamp.textContent="부동산 · 수집 파일 기반(FRED·ECOS)"+gen;RLT.init();}
+  if(k==="X"){stamp.textContent="가상화폐 · 수집 파일 기반"+gen;CRY.init();}
 }
 window.IN_showTab=show;
 Object.keys(navs).forEach(k=>{navs[k].onclick=()=>show(k);});
