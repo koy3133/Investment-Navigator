@@ -251,6 +251,18 @@ if ECOS_KEY:
                 return pd.Series(out).sort_index()
         return None
 
+    def ecos_series_a(stat, item_path):
+        y0, y1 = START.year, END.year
+        rows = ecos_rows(f"StatisticSearch/{ECOS_KEY}/json/kr/1/2000/{stat}/A/{y0}/{y1}/{item_path}")
+        out = {}
+        for r in rows or []:
+            t = str(r["TIME"])[:4]
+            try:
+                out[pd.Timestamp(int(t), 12, 1)] = float(r["DATA_VALUE"])
+            except Exception:
+                pass
+        return pd.Series(out).sort_index() if out else None
+
     def ecos_items(stat):
         out = []
         for p in range(3):
@@ -429,7 +441,7 @@ if ECOS_KEY:
             if "M2" in nm and str(r.get("SRCH_YN", "Y")) != "N":
                 cand.append((len(nm), str(r.get("STAT_CODE")), nm))
         cand.sort()
-        stats = [c[1] for c in cand[:4]] + ["101Y004", "101Y003"]
+        stats = [c[1] for c in cand[:4]] + ["161Y013", "101Y004", "101Y003"]
         seen, got, tried = set(), False, []
         for stat in stats:
             if stat in seen:
@@ -440,13 +452,13 @@ if ECOS_KEY:
                 tried.append(stat + ":항목없음")
                 continue
             s = trim_yoy(ecos_series(stat, path))
-            if s is None:
-                tried.append(f"{stat}/{path}:데이터없음")
+            if s is None or len(s) == 0 or (pd.Timestamp(END) - s.index[-1]).days > 400:
+                tried.append(f"{stat}/{path}:데이터없음·갱신중단")
                 continue
-            add("LIQ_KR_M2", "한국 M2(전년비)", "LIQ", s, "%")
-            print(f"       (한국 M2: {stat} / {path} / {hit})")
-            got = True
-            break
+            if add("LIQ_KR_M2", "한국 M2(전년비)", "LIQ", s, "%"):
+                print(f"       (한국 M2: {stat} / {path} / {hit})")
+                got = True
+                break
         if not got:
             raise RuntimeError("시도: " + " | ".join(tried[:6]))
     except Exception as e:
@@ -455,9 +467,16 @@ if ECOS_KEY:
     # 6) GDP: 국제 주요국 실질 성장률(분기)
     try:
         nm_g, stat_g = None, None
-        for kws in (["주요국", "GDP"], ["주요국", "경제성장률"], ["주요국", "성장률"]):
-            nm_g, stat_g = ecos_find_stat(kws)
-            if stat_g:
+        for kws in (["주요국", "경제성장률"], ["주요국", "성장률"], ["주요국", "GDP"]):
+            best = None
+            for r in ecos_tables():
+                nm = str(r.get("STAT_NAME", ""))
+                if all(k in nm for k in kws) and "1인당" not in nm \
+                        and str(r.get("SRCH_YN", "Y")) != "N":
+                    if best is None or len(nm) < len(best[0]):
+                        best = (nm, str(r.get("STAT_CODE")))
+            if best:
+                nm_g, stat_g = best
                 break
         if not stat_g:
             raise RuntimeError("국제 GDP 통계표 미발견")
@@ -475,7 +494,9 @@ if ECOS_KEY:
                     continue
                 raw = ecos_series_q(stat_g, code)
                 if raw is None:
-                    raise RuntimeError("데이터 없음")
+                    raw = ecos_series_a(stat_g, code)
+                if raw is None:
+                    raise RuntimeError("데이터 없음(분기·연간)")
                 s = raw if raw.abs().median() < 30 else (raw.pct_change(4) * 100).dropna()
                 s = s[s.index >= pd.Timestamp(START)]
                 add(key, label, "GDP", s, "%")
@@ -533,7 +554,7 @@ if os.getenv("ECOS_KEY"):
             ("RE_KR_APT", "매매가격", "전국 아파트 매매가격지수"),
             ("RE_KR_JS",  "전세가격", "전국 아파트 전세가격지수"),
         ]:
-            done, errs = False, []
+            best, errs = None, []
             for nm, stat in ecos_house_cands(kw):
                 try:
                     path, hit, rows = ecos_item_path(stat, lambda n: n == "전국" or "아파트" in n)
@@ -542,14 +563,19 @@ if os.getenv("ECOS_KEY"):
                         errs.append(f"{nm}:데이터없음")
                         continue
                     s = raw[raw.index >= pd.Timestamp(START)]
-                    src_tag = "부동산원" if "부동산원" in nm else ("KB" if "KB" in nm.upper() else "ECOS")
-                    if add(key, base + f"(월간·{src_tag})", "REALTY", s, "지수"):
-                        print(f"       ({key} 채택: {nm} / {stat} / {path})")
-                        done = True
-                        break
+                    if len(s) < 12 or (pd.Timestamp(END) - s.index[-1]).days > 120:
+                        errs.append(f"{nm}:{len(s)}점·구간부족")
+                        continue
+                    if best is None or len(s) > best[0]:
+                        best = (len(s), nm, stat, path, s)
                 except Exception as e:
                     errs.append(f"{nm}: {str(e)[:60]}")
-            if not done:
+            if best:
+                _, nm, stat, path, s = best
+                src_tag = "부동산원" if "부동산원" in nm else ("KB" if "KB" in nm.upper() else "ECOS")
+                add(key, base + f"(월간·{src_tag})", "REALTY", s, "지수")
+                print(f"       ({key} 채택: {nm} / {stat} / {path} · 최장 {len(s)}개월)")
+            else:
                 print(f"[FAIL] {key}(ECOS): " + " | ".join(errs[:4]))
     except Exception as e:
         print(f"[FAIL] 주택가격지수(ECOS): {str(e)[:200]}")
