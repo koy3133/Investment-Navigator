@@ -96,6 +96,16 @@
   .nstar.on{color:#C9A227}
   .norg{font-size:10.5px;color:#98A1A9;margin-left:8px;text-decoration:none;white-space:nowrap}
   .norg:hover{text-decoration:underline}
+  .ipogrid{display:flex;flex-direction:column;gap:10px}
+  .ipocard{border:1px solid #E3E0D6;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
+  .ipocard.soon{border-color:#B4441B;background:#FBF1EE}
+  .iponame{font-weight:700;font-size:14px}
+  .ipometa{font-family:var(--mono);font-size:11px;color:#98A1A9}
+  .ipostage{display:inline-block;font-family:var(--mono);font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:#EEF3F7;color:#2F4B7C}
+  .ipodday{font-family:var(--mono);font-weight:700;font-size:15px;text-align:right;white-space:nowrap}
+  .ipodday.red{color:#B4441B}.ipodday.gray{color:#98A1A9}
+  .iponote2{grid-column:1/-1;font-size:12px;color:#5E6A72;line-height:1.4}
+  .ipodates{grid-column:1/-1;font-family:var(--mono);font-size:11px;color:#5E6A72}
   button:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px}
   @media (max-width:920px){.kpis{grid-template-columns:repeat(4,1fr)}.main{grid-template-columns:1fr}}
   @media (max-width:560px){.kpis{grid-template-columns:repeat(2,1fr)}.custom{margin-left:0}}
@@ -110,13 +120,14 @@
   <nav class="pnav" id="gnav">
     <button class="gbtn on" data-g="A">투자 환경</button>
     <button class="gbtn" data-g="B">자산 시장</button>
-    <button class="gbtn" data-g="C">주요 기사</button>
+    <button class="gbtn" data-g="C">뉴스·일정</button>
   </nav>
   <nav class="pnav sub" id="snav">
     <button id="navE" data-g="A">물가</button>
     <button id="navU" data-g="A">고용</button>
     <button id="navG" data-g="A">GDP</button>
     <button id="navR" data-g="A">기준금리</button>
+    <button id="navD" data-g="A">정기예금</button>
     <button id="navL" data-g="A">유동성</button>
     <button id="navF" data-g="A">환율</button>
     <button id="navI" data-g="B">종합주가지수</button>
@@ -128,6 +139,7 @@
     <button id="navP" data-g="B">부동산</button>
     <button id="navX" data-g="B">가상화폐</button>
     <button id="navN" data-g="C">주요 기사</button>
+    <button id="navP2" data-g="C">IPO 일정</button>
   </nav>
 
   <div class="layout">
@@ -573,6 +585,47 @@
         </footer>
       </section>
 
+      <!-- ══════════ 정기예금 ══════════ -->
+      <section id="secD" style="display:none">
+        <div class="controls" id="chipsD"></div>
+        <div class="controls" id="rangesD">
+          <button class="rbtn" data-r="1m">1개월</button>
+          <button class="rbtn" data-r="3m">3개월</button>
+          <button class="rbtn" data-r="1y">1년</button>
+          <button class="rbtn on" data-r="3y">3년</button>
+          <button class="rbtn" data-r="5y">5년</button>
+          <button class="rbtn" data-r="10y">10년</button>
+          <button class="rbtn" data-r="all">전체</button>
+          <div class="custom">
+            <input type="date" id="d0D" aria-label="시작일"><span style="color:var(--faint)">–</span>
+            <input type="date" id="d1D" aria-label="종료일">
+            <button class="go" id="goD">적용</button>
+          </div>
+        </div>
+        <div class="main">
+        <div class="panel">
+          <h2 class="ptitle">요약</h2>
+          <div id="barsD"></div>
+          <div class="note">행을 누르면 해당 지표가 선택됩니다</div>
+        </div>
+        <div class="panel">
+          <h2 class="ptitle" id="titleD">정기예금 금리</h2>
+          <div class="hero" id="heroD"></div>
+          <div class="chart-wrap">
+            <svg class="big" id="chartD" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
+            <div class="tip" id="tipD"></div>
+          </div>
+          <div class="legend" id="legD"></div>
+          <div class="note" id="noteD"></div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 한국은행 ECOS의 예금은행 가중평균 수신금리(신규취급액 기준, 월별) 중 정기예금 항목입니다.</div>
+          <div><b>해석</b> · 기준금리 변화가 실제 예금 상품에 전달되는 속도를 보여주며, 국채 금리와의 격차로 예금 대비 채권의 상대 매력을 판단할 수 있습니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
+        </footer>
+      </section>
+
       <!-- ══════════ 관심 주가 ══════════ -->
       <section id="secW" style="display:none">
         <div class="controls" id="chipsW"></div>
@@ -627,6 +680,22 @@
         <footer class="foot">
           <div><b>데이터</b> · CNBC · MarketWatch · Yahoo Finance 상위 기사를 매 자동 수집 시 최대 10건씩 목록에 누적합니다.</div>
           <div><b>고지</b> · 기사 저작권은 각 언론사에 있으며, 본 목록은 제목과 출처 링크만 제공합니다.</div>
+        </footer>
+      </section>
+
+      <!-- ══════════ IPO 일정 ══════════ -->
+      <section id="secP2" style="display:none">
+        <div class="main" style="grid-template-columns:1fr">
+        <div class="panel">
+          <h2 class="ptitle" id="titleP2">IPO 청약 일정</h2>
+          <div id="ipoList"></div>
+          <div class="note">청약 시작일 기준 D-day 순 정렬. 관심 업체 추가·일정 갱신은 대화로 요청하시면 반영합니다(비상장·해외 포함).</div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 상장 전 비상장사·해외 법인은 공개 API가 없어, 확정 증권신고서·뉴스 기반으로 조사해 수기 관리합니다.</div>
+          <div><b>주의</b> · 일정은 증권신고서 수리 과정에서 변경될 수 있으며, 청약 전 DART(전자공시) 등에서 최종 확인이 필요합니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
       </section>
 
@@ -776,6 +845,7 @@
 </div>
 <script src="data_indices.js"></script>
 <script src="data_news.js"></script>
+<script src="data_ipo.js"></script>
 <script>
 "use strict";
 // ══════════ 공통 ══════════
@@ -898,6 +968,7 @@ G_CBA:{t:"중앙은행 총자산",b:"양적완화·긴축 규모를 보여주는
 G_GDPR:{t:"실질 GDP(전년비)",b:"물가 효과를 제거한 경제 성장률(전년동기비). 잠재성장률 대비 수준이 경기 과열·침체 판단의 기준입니다."},
 G_GDPN:{t:"명목 GDP(전년비)",b:"물가를 포함한 성장률로 기업 매출·세수·부채비율의 분모와 직결됩니다. 실질과의 격차는 물가 압력을 시사합니다."},
 G_WATCH:{t:"관심 주가",b:"직접 등록한 개별 종목의 일별 종가(KRX)입니다. 비교 시 구간 시작=100으로 재계산하며, 절대가는 개별 선택 시 표시됩니다."},
+RATE_KR_DEPO:{t:"한국 정기예금 금리",b:"예금은행이 신규 취급한 정기예금의 가중평균 금리(월별, 한국은행 ECOS). 기준금리 변화가 실제 수신 상품에 전달되는 속도와 예금·채권 간 상대 매력을 보여줍니다."},
 LIQ_EA_CB:{t:"ECB 총자산(전년비)",b:"FRED(ECBASSETSW) 주간 대차대조표의 전년동주비. 유로존 유동성 공급의 원천 지표입니다."},
 LIQ_JP_CB:{t:"일본은행 총자산(전년비)",b:"FRED(JPNASSETS) 월별 대차대조표의 전년동월비. 초완화 정책의 규모 변화를 보여줍니다."},
 RE_KR_JS:{t:"전국 아파트 전세가격지수",b:"한국은행 ECOS 등재 KB 전국 아파트 전세가격지수(월간). 전세는 실수요 중심이라 매매 수요의 선행·동행 신호로 활용됩니다."},
@@ -2355,6 +2426,11 @@ const GDP=IN_ctryTab("G",{mode:"raw",inverted:true,defView:"REAL",
   {cc:"NOM",label:"명목 GDP",infoKey:"G_GDPN",items:[{k:"GDP_KR_NOM",label:"한국"},{k:"GDP_US_NOM",label:"미국"}],note:"명목 GDP는 소스 제약으로 한국·미국만 제공됩니다."}],
  allNote:"국가별 GDP 성장률(전년동기비, %)을 겹쳐 비교합니다. 분기 지표라 발표 시차가 큽니다."});
 
+const DEP=IN_simpleTab("D",{group:"DEPO",name:"정기예금",mode:"raw",infoKey:"RATE_KR_DEPO",defSel:"RATE_KR_DEPO",
+ emptyMsg:"정기예금 금리 수집이 확인되지 않았습니다. 수집기 실행(v22 이상)과 ECOS 키 설정을 확인하십시오.",
+ allNote:"예금은행이 신규 취급한 정기예금의 가중평균 금리(%)입니다.",
+ itemNote:{RATE_KR_DEPO:"월별 신규취급액 기준이라 시중 최고금리와는 차이가 있습니다. 기준금리 대비 스프레드 추이가 유용합니다."}});
+
 const WCH=IN_simpleTab("W",{group:"WATCH",name:"관심 주가",mode:"idx",infoKey:"G_WATCH",
  emptyMsg:"등록된 관심 종목이 없습니다. 추가할 종목명(또는 종목코드)을 알려주시면 수집기에 등록해 드립니다.",
  allNote:"종목별 가격 수준이 달라 구간 시작=100으로 재계산해 비교합니다. 절대가는 개별 선택 시 표시됩니다.",
@@ -2400,12 +2476,59 @@ function init(){if(!inited){inited=true;}buildChips();draw();}
 return{init};
 })();
 
+const IPO=(function(){
+let inited=false;
+const STAGES=["예심준비","예심청구","예심승인","수요예측","청약","상장추진","상장완료"];
+function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function dday(ds){
+  if(!ds)return null;
+  const t=Date.parse(ds);if(isNaN(t))return null;
+  return Math.ceil((t-Date.now())/864e5);
+}
+function draw(){
+  const el=document.getElementById("ipoList");
+  let D=(window.IPO_DATA&&window.IPO_DATA.items)?window.IPO_DATA.items.slice():[];
+  D.sort((a,b)=>{
+    const da=dday(a.sub_start),db=dday(b.sub_start);
+    const ka=(da!=null&&da>=0)?da:(da!=null?1e5-da:1e6);
+    const kb=(db!=null&&db>=0)?db:(db!=null?1e5-db:1e6);
+    return ka-kb;
+  });
+  if(!D.length){el.innerHTML='<div class="note" style="margin:8px 0">IPO 일정 데이터(data_ipo.js)를 불러오지 못했습니다. GitHub 저장소(웹)와 로컬 폴더에 data_ipo.js 파일이 index.html과 같은 위치에 있는지 확인하십시오.</div>';return;}
+  let h='<div class="ipogrid">';
+  D.forEach(x=>{
+    const d=dday(x.sub_start);
+    const soon=(d!=null&&d>=0&&d<=3);
+    let ddTxt,ddCls;
+    if(d==null){ddTxt="일정 미정";ddCls="gray";}
+    else if(d<0){ddTxt="청약 종료";ddCls="gray";}
+    else if(d===0){ddTxt="D-DAY";ddCls="red";}
+    else{ddTxt="D-"+d;ddCls=(d<=7?"red":"");}
+    const flag=(x.country&&x.country!=="KR")?" · "+esc(x.country):"";
+    const dates=(x.sub_start||x.list_date)?
+      ('청약 '+(x.sub_start?esc(x.sub_start)+(x.sub_end?" ~ "+esc(x.sub_end):""):"미정")+
+       ' · 상장 '+(x.list_date?esc(x.list_date):"미정")):"";
+    h+='<div class="ipocard'+(soon?" soon":"")+'">'+
+       '<div><span class="iponame">'+esc(x.name)+'</span> <span class="ipometa">'+esc(x.market)+flag+'</span></div>'+
+       '<div class="ipodday '+ddCls+'">'+ddTxt+'</div>'+
+       '<div><span class="ipostage">'+esc(x.stage)+'</span></div><div></div>'+
+       (dates?'<div class="ipodates">'+dates+'</div>':'')+
+       (x.note?'<div class="iponote2">'+esc(x.note)+'</div>':'')+
+       '</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+function init(){if(!inited){inited=true;}draw();}
+return{init};
+})();
+
 // ══════════ 탭 전환 (2대 분류 · 12개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),W:document.getElementById("secW"),N:document.getElementById("secN"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),P:document.getElementById("secP"),L:document.getElementById("secL")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),W:document.getElementById("navW"),N:document.getElementById("navN"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),P:document.getElementById("navP"),L:document.getElementById("navL")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),W:document.getElementById("secW"),N:document.getElementById("secN"),P2:document.getElementById("secP2"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),D:document.getElementById("secD"),P:document.getElementById("secP"),L:document.getElementById("secL")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),W:document.getElementById("navW"),N:document.getElementById("navN"),P2:document.getElementById("navP2"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),D:document.getElementById("navD"),P:document.getElementById("navP"),L:document.getElementById("navL")};
 const stamp=document.getElementById("stamp");
-const GROUPS={A:["E","U","G","R","L","F"],B:["I","S","T","W","B","C","P","X"],C:["N"]};
+const GROUPS={A:["E","U","G","R","D","L","F"],B:["I","S","T","W","B","C","P","X"],C:["N","P2"]};
 function groupOf(k){for(const g in GROUPS){if(GROUPS[g].indexOf(k)>=0)return g;}return "A";}
 let fxStarted=false;
 function show(k){
@@ -2418,6 +2541,7 @@ function show(k){
   if(k==="U"){stamp.textContent="고용 · 수집 파일 기반(FRED·ECOS)"+gen;EMP.init();}
   if(k==="G"){stamp.textContent="GDP · 수집 파일 기반(FRED·ECOS)"+gen;GDP.init();}
   if(k==="R"){stamp.textContent="기준금리(통화정책) · 확인일 2026-07-07 · 내장 데이터";}
+  if(k==="D"){stamp.textContent="정기예금 금리 · 수집 파일 기반(ECOS)"+gen;DEP.init();}
   if(k==="L"){stamp.textContent="유동성·통화량 · 수집 파일 기반(FRED·ECOS)"+gen;LIQ.init();}
   if(k==="F"){stamp.textContent="환율 · ECB 일별 기준환율";if(!fxStarted){fxStarted=true;FX.init();}}
   if(k==="I"){stamp.textContent="종합 주가지수 · 수집 파일 기반"+gen;IDX.init();}
@@ -2425,6 +2549,7 @@ function show(k){
   if(k==="T"){stamp.textContent="관심 ETF · 관심 종목 직접 관리"+gen;ETF.init();}
   if(k==="W"){stamp.textContent="관심 주가 · 관심 종목 직접 관리"+gen;WCH.init();}
   if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
+  if(k==="P2"){stamp.textContent="IPO 청약 일정 · 관심 업체 수기 관리"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
   if(k==="B"){stamp.textContent="채권 금리 · 수집 파일 기반(FRED)"+gen;BND.init();}
   if(k==="C"){stamp.textContent="원자재 · 수집 파일 기반"+gen;CMD.init();}
   if(k==="P"){stamp.textContent="부동산 · 수집 파일 기반(FRED·ECOS)"+gen;RLT.init();}

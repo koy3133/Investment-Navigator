@@ -531,6 +531,35 @@ if ECOS_KEY:
             raise RuntimeError(("시도: " + " | ".join(tried[:5])) if tried else "명목 GDP 통계표 미발견")
     except Exception as e:
         print(f"[FAIL] GDP_KR_NOM(ECOS): {str(e)[:200]}")
+
+    # 8) 한국 정기예금 금리(예금은행 신규취급액 기준, 월별)
+    try:
+        cands = []
+        for r in ecos_tables():
+            nm = str(r.get("STAT_NAME", ""))
+            if "수신금리" in nm and str(r.get("SRCH_YN", "Y")) != "N":
+                pri = 0 if "신규" in nm else 1
+                cands.append((pri, len(nm), nm, str(r.get("STAT_CODE"))))
+        cands.sort()
+        done, tried = False, []
+        for _, _, nm, stat in cands[:5]:
+            path, hit, rows = ecos_item_path(
+                stat, lambda n: n == "정기예금" or n.startswith("정기예금("))
+            if not hit:
+                tried.append(nm + ":항목없음")
+                continue
+            s = trim_yoy(ecos_series(stat, path), n=None)
+            if s is None or len(s) == 0 or (pd.Timestamp(END) - s.index[-1]).days > 400:
+                tried.append(f"{nm}/{path}:데이터없음·중단")
+                continue
+            if add("RATE_KR_DEPO", "한국 정기예금 금리(신규, 월별)", "DEPO", s, "%"):
+                print(f"       (정기예금 금리: {nm} / {stat} / {path})")
+                done = True
+                break
+        if not done:
+            raise RuntimeError(("시도: " + " | ".join(tried[:5])) if tried else "수신금리 통계표 미발견")
+    except Exception as e:
+        print(f"[FAIL] RATE_KR_DEPO(ECOS): {str(e)[:200]}")
 else:
     print("[안내] ECOS_KEY 미설정 → 한국·국제(ECOS) 지표는 건너뜁니다.")
     print("       ecos.bok.or.kr 무료 인증키 발급 후 ECOS_KEY 설정 시 수집됩니다.")
