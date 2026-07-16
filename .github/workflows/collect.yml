@@ -27,6 +27,7 @@ jobs:
           KRX_ID: ${{ secrets.KRX_ID }}
           KRX_PW: ${{ secrets.KRX_PW }}
           ECOS_KEY: ${{ secrets.ECOS_KEY }}
+          SUB_KEY: ${{ secrets.SUB_KEY }}
           REB_KEY: ${{ secrets.REB_KEY }}
         run: python indices_collector.py
 
@@ -37,5 +38,6 @@ jobs:
           git add data_indices.js
           git add data_news.js || true
           git add data_ipo.js || true
+          git add data_sub.js || true
           git commit -m "data update $(date -u +%F)" || echo "변경 없음"
           git push
