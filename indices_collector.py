@@ -541,12 +541,19 @@ if ECOS_KEY:
                 pri = 0 if "신규" in nm else 1
                 cands.append((pri, len(nm), nm, str(r.get("STAT_CODE"))))
         cands.sort()
-        done, tried = False, []
+        pool, seenp = [], set()
         for _, _, nm, stat in cands[:5]:
+            if stat not in seenp:
+                pool.append((nm, stat))
+                seenp.add(stat)
+        if "121Y002" not in seenp:
+            pool.append(("예금은행 가중평균 수신금리(고정코드)", "121Y002"))
+        done, tried = False, []
+        for nm, stat in pool:
             path, hit, rows = ecos_item_path(
                 stat, lambda n: n == "정기예금" or n.startswith("정기예금("))
             if not hit:
-                tried.append(nm + ":항목없음")
+                tried.append(nm + ":항목없음(" + item_names(rows, 6) + ")")
                 continue
             s = trim_yoy(ecos_series(stat, path), n=None)
             if s is None or len(s) == 0 or (pd.Timestamp(END) - s.index[-1]).days > 400:
@@ -582,6 +589,7 @@ if os.getenv("ECOS_KEY"):
         for key, kw, base in [
             ("RE_KR_APT", "매매가격", "전국 아파트 매매가격지수"),
             ("RE_KR_JS",  "전세가격", "전국 아파트 전세가격지수"),
+            ("RE_KR_WS",  "월세",     "전국 아파트 월세가격지수"),
         ]:
             best, errs = None, []
             for nm, stat in ecos_house_cands(kw):
@@ -680,6 +688,65 @@ except Exception as e:
     if not os.path.exists("data_news.js"):
         with open("data_news.js", "w", encoding="utf-8") as fp:
             fp.write('window.NEWS_DATA={"generated":"","items":[]};')
+
+# ──────────────── 국내 분양 청약 일정 (청약홈 오픈API, 인증키 필요) ────────────────
+SUB_KEY = os.getenv("SUB_KEY")
+if SUB_KEY:
+    try:
+        import requests
+        import json as _json
+        today_s = END.strftime("%Y-%m-%d")
+        subs = []
+
+        def pickk(d, pats):
+            for k2, v2 in d.items():
+                ku = str(k2).upper()
+                if all(p in ku for p in pats):
+                    return v2 if v2 is not None else ""
+            return ""
+
+        for ep, typ in [
+            ("getAPTLttotPblancDetail", "일반분양"),
+            ("getRemndrLttotPblancDetail", "무순위·잔여"),
+        ]:
+            try:
+                js = requests.get(
+                    f"https://api.odcloud.kr/api/ApplyhomeInfoDetailSvc/v1/{ep}",
+                    params={"page": 1, "perPage": 100, "serviceKey": SUB_KEY,
+                            "cond[RCEPT_ENDDE::GTE]": today_s},
+                    timeout=60, headers={"User-Agent": "Mozilla/5.0"}).json()
+                rows = js.get("data")
+                if rows is None:
+                    raise RuntimeError(str(js)[:180])
+                got0 = len(subs)
+                for r in rows:
+                    nm = pickk(r, ["HOUSE_NM"])
+                    rs = str(pickk(r, ["RCEPT_BGNDE"]))[:10]
+                    re_ = str(pickk(r, ["RCEPT_ENDDE"]))[:10]
+                    an = str(pickk(r, ["PRZWNER"]))[:10]
+                    rg = pickk(r, ["SUBSCRPT_AREA"]) or str(pickk(r, ["ADRES"]))[:24]
+                    if not nm or not rs:
+                        continue
+                    subs.append({"name": str(nm), "region": str(rg), "type": typ,
+                                 "r_start": rs, "r_end": re_, "announce": an})
+                print(f"[SUB]  {typ}: 수신 {len(rows)}건 · 채택 {len(subs)-got0}건")
+                if rows and len(subs) == got0:
+                    print("       (필드 확인 필요, 키 예시: " + ", ".join(list(rows[0].keys())[:10]) + ")")
+            except Exception as e:
+                print(f"[FAIL] 청약({typ}): {str(e)[:150]}")
+        subs.sort(key=lambda x: x.get("r_start") or "9999")
+        with open("data_sub.js", "w", encoding="utf-8") as fp:
+            fp.write("window.SUB_DATA=" + _json.dumps(
+                {"generated": today_s, "items": subs[:200]}, ensure_ascii=False) + ";")
+        print(f"[SUB]  청약 일정 {len(subs)}건 저장(data_sub.js)")
+    except Exception as e:
+        print(f"[FAIL] 청약 일정 수집: {str(e)[:200]}")
+else:
+    print("[안내] SUB_KEY 미설정 → 청약홈 분양 일정은 건너뜁니다.")
+    print("       공공데이터포털(data.go.kr) '청약홈 분양정보' 활용신청 후 SUB_KEY 설정 시 수집됩니다.")
+if not os.path.exists("data_sub.js"):
+    with open("data_sub.js", "w", encoding="utf-8") as fp:
+        fp.write('window.SUB_DATA={"generated":"","items":[]};')
 
 # ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
 if KRX_READY:

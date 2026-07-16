@@ -140,6 +140,7 @@
     <button id="navX" data-g="B">가상화폐</button>
     <button id="navN" data-g="C">주요 기사</button>
     <button id="navP2" data-g="C">IPO 일정</button>
+    <button id="navP3" data-g="C">청약 일정</button>
   </nav>
 
   <div class="layout">
@@ -699,6 +700,22 @@
         </footer>
       </section>
 
+      <!-- ══════════ 분양 청약 일정 ══════════ -->
+      <section id="secP3" style="display:none">
+        <div class="main" style="grid-template-columns:1fr">
+        <div class="panel">
+          <h2 class="ptitle" id="titleP3">분양 청약 일정</h2>
+          <div id="subList"></div>
+          <div class="note">접수 시작일 기준 D-day 순 정렬이며, 접수 중인 단지는 빨간 테두리로 강조됩니다. 마감 건은 자동으로 숨겨집니다.</div>
+        </div>
+        </div>
+        <footer class="foot">
+          <div><b>데이터</b> · 청약홈(한국부동산원) 공공데이터포털 오픈API의 일반분양·무순위 잔여세대 일정입니다. 매 자동 수집 시 갱신됩니다.</div>
+          <div><b>참고</b> · 보류지 매각은 각 재건축 조합이 개별 공고하는 방식이라 공개 API가 없어 자동 수집이 불가하며, 관심 건은 IPO처럼 수기 등록으로 관리할 수 있습니다.</div>
+          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 청약 전 청약홈 공고문의 최종 확인이 필요합니다.</div>
+        </footer>
+      </section>
+
       <!-- ══════════ 09 부동산 ══════════ -->
       <section id="secP" style="display:none">
         <div class="controls" id="ctryP"></div>
@@ -846,6 +863,7 @@
 <script src="data_indices.js"></script>
 <script src="data_news.js"></script>
 <script src="data_ipo.js"></script>
+<script src="data_sub.js"></script>
 <script>
 "use strict";
 // ══════════ 공통 ══════════
@@ -969,6 +987,7 @@ G_GDPR:{t:"실질 GDP(전년비)",b:"물가 효과를 제거한 경제 성장률
 G_GDPN:{t:"명목 GDP(전년비)",b:"물가를 포함한 성장률로 기업 매출·세수·부채비율의 분모와 직결됩니다. 실질과의 격차는 물가 압력을 시사합니다."},
 G_WATCH:{t:"관심 주가",b:"직접 등록한 개별 종목의 일별 종가(KRX)입니다. 비교 시 구간 시작=100으로 재계산하며, 절대가는 개별 선택 시 표시됩니다."},
 RATE_KR_DEPO:{t:"한국 정기예금 금리",b:"예금은행이 신규 취급한 정기예금의 가중평균 금리(월별, 한국은행 ECOS). 기준금리 변화가 실제 수신 상품에 전달되는 속도와 예금·채권 간 상대 매력을 보여줍니다."},
+RE_KR_WS:{t:"전국 아파트 월세가격지수",b:"한국은행 ECOS 등재 월세(통합) 지수(월별). 전세의 월세 전환 흐름과 임대료 환경 판단에 활용됩니다."},
 LIQ_EA_CB:{t:"ECB 총자산(전년비)",b:"FRED(ECBASSETSW) 주간 대차대조표의 전년동주비. 유로존 유동성 공급의 원천 지표입니다."},
 LIQ_JP_CB:{t:"일본은행 총자산(전년비)",b:"FRED(JPNASSETS) 월별 대차대조표의 전년동월비. 초완화 정책의 규모 변화를 보여줍니다."},
 RE_KR_JS:{t:"전국 아파트 전세가격지수",b:"한국은행 ECOS 등재 KB 전국 아파트 전세가격지수(월간). 전세는 실수요 중심이라 매매 수요의 선행·동행 신호로 활용됩니다."},
@@ -2065,7 +2084,7 @@ function draw(){
   if(!s){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">data_indices.js 파일을 준비해 주십시오.</text>';return;}
   const rw=rangeWindow(),t0=rw[0],t1=rw[1];
   const ks=keysOf();
-  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+cfg.name+' 데이터가 없습니다. 수집기 v7 실행 여부를 확인하십시오.</text>';$("leg").innerHTML="";drawBars();return;}
+  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+(cfg.emptyMsg||(cfg.name+' 데이터가 없습니다. 수집기 실행과 인증키 설정을 확인하십시오.'))+'</text>';$("leg").innerHTML="";drawBars();return;}
   if(sel!=="ALL"&&ks.indexOf(sel)<0)sel="ALL";
   if(sel==="ALL"){
     $("title").textContent=cfg.name+(cfg.mode==="raw"?" 비교":" 비교 (구간 시작=100)");
@@ -2190,7 +2209,7 @@ function draw(){
   if(!s){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">data_indices.js 파일을 준비해 주십시오.</text>';return;}
   const rw=rangeWindow(),t0=rw[0],t1=rw[1];
   const ks=keysOf();
-  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+GRP[grp].n+' ETF 데이터가 없습니다. 수집기 v9 실행 여부를 확인하십시오.</text>';document.getElementById("legT").innerHTML="";window.IN_hero("T",null);drawBarsT();return;}
+  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+GRP[grp].n+'에 등록된 관심 ETF가 없습니다.</text>';document.getElementById("legT").innerHTML="";window.IN_hero("T",null);drawBarsT();return;}
   if(sel!=="ALL"&&ks.indexOf(sel)<0)sel="ALL";
   if(sel==="ALL"){
     document.getElementById("titleT").textContent=GRP[grp].n+" 주요 ETF 비교 (구간 시작=100)";
@@ -2401,7 +2420,7 @@ const LIQ=IN_ctryTab("L",{mode:"raw",inverted:true,defView:"M2",
  itemNote:{LIQ_US_CB:"주간 수치의 전년동주비입니다. 음수면 양적긴축(QT) 진행을 뜻합니다.",LIQ_KR_M2:"한국은행 ECOS 기준 월별 통화량입니다."}});
 const RLT=IN_ctryTab("P",{mode:"idx",defView:"KR",
  countries:[
-  {cc:"KR",label:"한국",items:[{k:"RE_KR_APT",label:"아파트 매매"},{k:"RE_KR_JS",label:"아파트 전세"}]},
+  {cc:"KR",label:"한국",items:[{k:"RE_KR_APT",label:"아파트 매매"},{k:"RE_KR_JS",label:"아파트 전세"},{k:"RE_KR_WS",label:"아파트 월세"}]},
   {cc:"US",label:"미국",items:[{k:"RE_US_CS",label:"주택가격(케이스-실러)"},{k:"RE_US_MORT",label:"모기지 30년 금리"}]},
   {cc:"EA",label:"유로존",items:[{k:"RE_EA_BIS",label:"주택가격(BIS 분기)"}]},
   {cc:"UK",label:"영국",items:[{k:"RE_UK_BIS",label:"주택가격(BIS 분기)"}]},
@@ -2410,7 +2429,7 @@ const RLT=IN_ctryTab("P",{mode:"idx",defView:"KR",
  cmp:[{id:"PRICE",label:"주택가격 비교",keys:{KR:"RE_KR_APT",US:"RE_US_CS",EA:"RE_EA_BIS",UK:"RE_UK_BIS",CN:"RE_CN_BIS",JP:"RE_JP_BIS"}}],
  cmpNote:"국가별 기준·주기가 달라(표본 조사, 월별 실거래, 분기 실질) 구간 시작=100 상대 비교만 유효합니다.",
  allNote:"단위가 달라 구간 시작=100으로 재계산해 비교합니다. 절대값은 개별 선택 시 표시됩니다.",
- itemNote:{RE_KR_APT:"KB 표본 조사(호가 반영) 기반 월간 지수로 실거래 체감과 다를 수 있습니다.",RE_KR_JS:"전세가격은 매매 수요의 선행·동행 판단에 활용됩니다.",RE_US_CS:"약 2개월 발표 시차가 있습니다."}});
+ itemNote:{RE_KR_APT:"KB 표본 조사(호가 반영) 기반 월간 지수로 실거래 체감과 다를 수 있습니다.",RE_KR_JS:"전세가격은 매매 수요의 선행·동행 판단에 활용됩니다.",RE_KR_WS:"월세지수는 통계 이력이 상대적으로 짧아 장기 비교에는 한계가 있습니다.",RE_US_CS:"약 2개월 발표 시차가 있습니다."}});
 const BND=IN_ctryTab("B",{mode:"raw",defView:"US",cmpLabel:"국가 비교",
  countries:[
   {cc:"US",label:"미국",items:[{k:"BOND_US2Y",label:"국채 2년"},{k:"BOND_US10Y",label:"국채 10년"},{k:"BOND_US30Y",label:"국채 30년"},{k:"BOND_SPREAD",label:"장단기금리차(10y-2y)"}]},
@@ -2523,12 +2542,52 @@ function init(){if(!inited){inited=true;}draw();}
 return{init};
 })();
 
+const SUBM=(function(){
+let inited=false;
+function esc(t){return String(t==null?"":t).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function draw(){
+  const el=document.getElementById("subList");
+  const D=(window.SUB_DATA&&window.SUB_DATA.items)?window.SUB_DATA.items.slice():[];
+  if(!D.length){
+    el.innerHTML='<div class="note" style="margin:8px 0">청약 일정 데이터가 없습니다. 공공데이터포털 인증키(SUB_KEY) 설정과 수집기 로그의 [SUB] 줄을 확인하십시오.</div>';
+    return;
+  }
+  const now=new Date();
+  const t0=new Date(now.getFullYear(),now.getMonth(),now.getDate()).getTime();
+  const rows=D.map(x=>{
+    const s=Date.parse(x.r_start||""),e=Date.parse(x.r_end||x.r_start||"");
+    let st,cls,ord;
+    if(!isNaN(s)&&t0>=s&&(isNaN(e)||t0<=e)){st="접수중";cls="red";ord=-1;}
+    else if(!isNaN(s)&&t0<s){const d=Math.ceil((s-t0)/864e5);st=(d===0?"D-DAY":"D-"+d);cls=(d<=7?"red":"");ord=d;}
+    else{st="마감";cls="gray";ord=1e6;}
+    return Object.assign({st,cls,ord},x);
+  }).filter(x=>x.ord<1e6);
+  rows.sort((a,b)=>a.ord-b.ord);
+  if(!rows.length){
+    el.innerHTML='<div class="note" style="margin:8px 0">현재 접수 중이거나 예정된 청약이 없습니다.</div>';
+    return;
+  }
+  let h='<div class="ipogrid">';
+  rows.forEach(x=>{
+    h+='<div class="ipocard'+(x.cls==="red"?" soon":"")+'">'+
+       '<div><span class="iponame">'+esc(x.name)+'</span> <span class="ipometa">'+esc(x.region)+' · '+esc(x.type)+'</span></div>'+
+       '<div class="ipodday '+x.cls+'">'+x.st+'</div>'+
+       '<div class="ipodates">접수 '+esc(x.r_start)+(x.r_end?' ~ '+esc(x.r_end):'')+(x.announce?' · 당첨발표 '+esc(x.announce):'')+'</div>'+
+       '</div>';
+  });
+  h+='</div>';
+  el.innerHTML=h;
+}
+function init(){if(!inited){inited=true;}draw();}
+return{init};
+})();
+
 // ══════════ 탭 전환 (2대 분류 · 12개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),W:document.getElementById("secW"),N:document.getElementById("secN"),P2:document.getElementById("secP2"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),D:document.getElementById("secD"),P:document.getElementById("secP"),L:document.getElementById("secL")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),W:document.getElementById("navW"),N:document.getElementById("navN"),P2:document.getElementById("navP2"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),D:document.getElementById("navD"),P:document.getElementById("navP"),L:document.getElementById("navL")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),W:document.getElementById("secW"),N:document.getElementById("secN"),P2:document.getElementById("secP2"),P3:document.getElementById("secP3"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),D:document.getElementById("secD"),P:document.getElementById("secP"),L:document.getElementById("secL")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),W:document.getElementById("navW"),N:document.getElementById("navN"),P2:document.getElementById("navP2"),P3:document.getElementById("navP3"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),D:document.getElementById("navD"),P:document.getElementById("navP"),L:document.getElementById("navL")};
 const stamp=document.getElementById("stamp");
-const GROUPS={A:["E","U","G","R","D","L","F"],B:["I","S","T","W","B","C","P","X"],C:["N","P2"]};
+const GROUPS={A:["E","U","G","R","D","L","F"],B:["I","S","T","W","B","C","P","X"],C:["N","P2","P3"]};
 function groupOf(k){for(const g in GROUPS){if(GROUPS[g].indexOf(k)>=0)return g;}return "A";}
 let fxStarted=false;
 function show(k){
@@ -2550,6 +2609,7 @@ function show(k){
   if(k==="W"){stamp.textContent="관심 주가 · 관심 종목 직접 관리"+gen;WCH.init();}
   if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
   if(k==="P2"){stamp.textContent="IPO 청약 일정 · 관심 업체 수기 관리"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
+  if(k==="P3"){stamp.textContent="분양 청약 일정 · 청약홈 오픈API"+(window.SUB_DATA&&window.SUB_DATA.generated?" · 갱신일 "+window.SUB_DATA.generated:"");SUBM.init();}
   if(k==="B"){stamp.textContent="채권 금리 · 수집 파일 기반(FRED)"+gen;BND.init();}
   if(k==="C"){stamp.textContent="원자재 · 수집 파일 기반"+gen;CMD.init();}
   if(k==="P"){stamp.textContent="부동산 · 수집 파일 기반(FRED·ECOS)"+gen;RLT.init();}
