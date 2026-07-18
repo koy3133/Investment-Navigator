@@ -812,27 +812,24 @@ if KRX_READY:
             "KQ_ENT": "오락",
         }, "")
 
-        # ── 관심 주가 ──
-        # 기본 종목 + data_watch.json(items: [{"code":"6자리","name":"표시명"}]) 병합
-        watch = {
-            "W_NAVER": ("035420", "네이버"),
-            "W_SKSIG": ("260870", "SK시그넷"),
-        }
-        try:
-            if os.path.exists("data_watch.json"):
+        # ── 관심 주가: data_watch.json이 전체 목록(추가·삭제 모두 파일 기준) ──
+        watch = {}
+        if os.path.exists("data_watch.json"):
+            try:
                 import json as _wj
                 with open("data_watch.json", encoding="utf-8") as fp:
                     wj = _wj.load(fp)
-                added = 0
                 for it in wj.get("items", []):
                     code = str(it.get("code", "")).strip()
                     nm = str(it.get("name", "")).strip() or code
                     if code:
-                        watch["W_" + code] = (code, nm)
-                        added += 1
-                print(f"[WATCH] data_watch.json {added}건 반영")
-        except Exception as e:
-            print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]}")
+                        watch["W_" + code.replace(".", "_")] = (code, nm)
+                print(f"[WATCH] data_watch.json {len(watch)}건 반영")
+            except Exception as e:
+                print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]}")
+        if not watch and not os.path.exists("data_watch.json"):
+            watch = {"W_035420": ("035420", "네이버"), "W_260870": ("260870", "SK시그넷")}
+            print("[WATCH] data_watch.json 없음 → 기본 종목 사용")
         for k, (code, lb) in watch.items():
             try:
                 if code.isdigit() and len(code) == 6:
