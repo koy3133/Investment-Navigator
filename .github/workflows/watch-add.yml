@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   add:
-    if: contains(github.event.issue.title, '종목추가') && github.event.issue.user.login == github.repository_owner
+    if: (contains(github.event.issue.title, '종목추가') || contains(github.event.issue.title, '종목삭제')) && github.event.issue.user.login == github.repository_owner
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,19 +22,25 @@ jobs:
           BODY: ${{ github.event.issue.body }}
         run: |
           python3 - << 'EOF'
-          import json, os, re, sys
+          import json, os, re
           out = open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8")
-          text = (os.environ.get("TITLE", "") + " " + (os.environ.get("BODY") or ""))
-          m = re.search(r"\b(\d{6})\b", text)
+          def finish(changed, msg):
+              open("msg.txt", "w", encoding="utf-8").write(msg)
+              out.write(f"changed={'true' if changed else 'false'}\n")
+              raise SystemExit(0)
+          title = os.environ.get("TITLE", "")
+          body = os.environ.get("BODY") or ""
+          mode = "del" if "종목삭제" in title else "add"
+          text = title + " " + body
+          clean = re.sub(r"\b(NYSE|NASDAQ|AMEX|ARCA|NYSEARCA|OTC|KRX|KOSPI|KOSDAQ|KONEX)\b[:\s]*",
+                         " ", text, flags=re.I)
+          m = re.search(r"\b(\d{6})\b", clean)
           code = m.group(1) if m else None
           if not code:
-              m2 = re.search(r"종목추가[:\s]*([A-Za-z][A-Za-z0-9.\-]{0,11})", text)
+              m2 = re.search(r"종목(?:추가|삭제)[:\s]*([A-Za-z][A-Za-z0-9.\-]{0,11})", clean)
               code = m2.group(1).upper() if m2 else None
           if not code:
-              out.write("ok=false\nmsg=종목을 인식하지 못했습니다. 제목 예: '종목추가: 005930 삼성전자' 또는 '종목추가: AAPL 애플'\n")
-              sys.exit(0)
-          after = text.split(code, 1)[1]
-          name = re.sub(r"[\[\]:#*_`]", " ", after).strip().split("\n")[0].strip()[:20] or code
+              finish(False, "종목을 인식하지 못했습니다. 제목 예: '종목추가: 005930 삼성전자' / '종목추가: JOBY 조비' / '종목삭제: AAPL'")
           p = "data_watch.json"
           d = {"items": []}
           if os.path.exists(p):
@@ -43,30 +49,45 @@ jobs:
               except Exception:
                   d = {"items": []}
           items = d.get("items", [])
-          if any(str(it.get("code")) == code for it in items):
-              out.write(f"ok=dup\nmsg={code}는 이미 등록되어 있습니다.\n")
-              sys.exit(0)
+          if mode == "del":
+              keep = [it for it in items if str(it.get("code", "")).upper() != code.upper()]
+              if len(keep) == len(items):
+                  cur = ", ".join(str(it.get("code")) for it in items) or "(비어 있음)"
+                  finish(False, f"{code}는 목록에 없습니다. 현재 목록: {cur}")
+              d["items"] = keep
+              json.dump(d, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+              finish(True, f"{code} 삭제 완료. 다음 수집부터 대시보드에서 제거됩니다.")
+          if any(str(it.get("code", "")).upper() == code.upper() for it in items):
+              finish(False, f"{code}는 이미 등록되어 있습니다.")
+          after = clean.split(code, 1)[1] if code in clean else ""
+          name = re.sub(r"[\[\]:#*_`]", " ", after).strip().split("\n")[0].strip()[:20] or code
           items.append({"code": code, "name": name})
           d["items"] = items
           json.dump(d, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-          out.write(f"ok=true\nmsg={name}({code}) 등록 완료. 수집을 실행했으며 몇 분 뒤 대시보드에 표시됩니다.\n")
+          finish(True, f"{name}({code}) 등록 완료. 수집을 실행했으며 몇 분 뒤 대시보드에 표시됩니다.")
           EOF
       - name: 목록 커밋
-        if: steps.parse.outputs.ok == 'true'
+        if: steps.parse.outputs.changed == 'true'
         run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add data_watch.json
-          git diff --cached --quiet || git commit -m "관심 종목 추가 (#${{ github.event.issue.number }})"
+          git diff --cached --quiet || git commit -m "관심 종목 변경 (#${{ github.event.issue.number }})"
           git push
       - name: 수집 즉시 실행
-        if: steps.parse.outputs.ok == 'true'
+        if: steps.parse.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run collect.yml || true
-      - name: 이슈 답글·닫기
+      - name: 이슈 답글
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh issue comment ${{ github.event.issue.number }} --body "${{ steps.parse.outputs.msg }}"
-          gh issue close ${{ github.event.issue.number }} || true
+          [ -f msg.txt ] || echo "처리 중 오류가 발생했습니다. Actions 로그를 확인해 주세요." > msg.txt
+          gh issue comment ${{ github.event.issue.number }} --body-file msg.txt || true
+      - name: 이슈 닫기
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh issue close ${{ github.event.issue.number }} || true
