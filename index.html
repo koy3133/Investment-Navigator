@@ -96,6 +96,7 @@
   .nstar.on{color:#C9A227}
   .norg{font-size:10.5px;color:#98A1A9;margin-left:8px;text-decoration:none;white-space:nowrap}
   .norg:hover{text-decoration:underline}
+  a.rbtn{text-decoration:none;display:inline-flex;align-items:center}
   .ipogrid{display:flex;flex-direction:column;gap:10px}
   .ipocard{border:1px solid #E3E0D6;border-radius:12px;padding:12px 14px;display:grid;grid-template-columns:1fr auto;gap:6px 12px;align-items:center}
   .ipocard.soon{border-color:#B4441B;background:#FBF1EE}
@@ -132,7 +133,6 @@
     <button id="navF" data-g="A">환율</button>
     <button id="navI" data-g="B">종합주가지수</button>
     <button id="navS" data-g="B">산업별 주가지수</button>
-    <button id="navT" data-g="B">관심 ETF</button>
     <button id="navW" data-g="B">관심 주가</button>
     <button id="navB" data-g="B">채권</button>
     <button id="navC" data-g="B">원자재</button>
@@ -629,6 +629,7 @@
 
       <!-- ══════════ 관심 주가 ══════════ -->
       <section id="secW" style="display:none">
+        <div class="controls"><a class="rbtn" id="addW" href="https://github.com/koy3133/Investment-Navigator/issues/new?title=%EC%A2%85%EB%AA%A9%EC%B6%94%EA%B0%80%3A%20&body=%EC%A0%9C%EB%AA%A9%EC%9D%98%20%27%EC%A2%85%EB%AA%A9%EC%B6%94%EA%B0%80%3A%20%27%20%EB%92%A4%EC%97%90%20%EC%A2%85%EB%AA%A9%EC%BD%94%EB%93%9C%28%EA%B5%AD%EB%82%B4%206%EC%9E%90%EB%A6%AC%29%20%EB%98%90%EB%8A%94%20%ED%95%B4%EC%99%B8%20%ED%8B%B0%EC%BB%A4%EC%99%80%20%EC%9D%B4%EB%A6%84%EC%9D%84%20%EC%A0%81%EA%B3%A0%20%EC%A0%9C%EC%B6%9C%ED%95%B4%20%EC%A3%BC%EC%84%B8%EC%9A%94.%0A%EC%98%88%29%20%EC%A2%85%EB%AA%A9%EC%B6%94%EA%B0%80%3A%20005930%20%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90%20/%20%EC%A2%85%EB%AA%A9%EC%B6%94%EA%B0%80%3A%20AAPL%20%EC%95%A0%ED%94%8C%20/%20%EC%A2%85%EB%AA%A9%EC%B6%94%EA%B0%80%3A%207203.T%20%EB%8F%84%EC%9A%94%ED%83%80%0A%EC%A0%9C%EC%B6%9C%ED%95%98%EB%A9%B4%20%EC%9E%90%EB%8F%99%20%EC%B2%98%EB%A6%AC%20%ED%9B%84%20%EC%9D%B4%20%EC%9D%B4%EC%8A%88%EB%8A%94%20%EB%8B%AB%ED%9E%99%EB%8B%88%EB%8B%A4." target="_blank" rel="noopener">+ 종목 추가</a><span class="note" style="margin:0">버튼을 누르면 GitHub 이슈 창이 열립니다(로그인 필요). 제출 후 몇 분 내 자동 반영됩니다.</span></div>
         <div class="controls" id="chipsW"></div>
         <div class="controls" id="rangesW">
           <button class="rbtn" data-r="1m">1개월</button>
@@ -662,8 +663,8 @@
         </div>
         </div>
         <footer class="foot">
-          <div><b>데이터</b> · KRX 정보데이터시스템 일별 종가(코스피·코스닥·코넥스)이며, 비교 시 구간 시작=100으로 재계산합니다.</div>
-          <div><b>관리</b> · 종목 추가·삭제는 수집기(indices_collector.py)의 watch 목록에서 한 줄로 관리합니다.</div>
+          <div><b>데이터</b> · 국내(6자리 코드)는 KRX, 해외 티커(AAPL, 7203.T 등)는 야후 파이낸스 일별 종가이며, 비교 시 구간 시작=100으로 재계산합니다. 통화가 달라 비교는 등락률 기준입니다.</div>
+          <div><b>관리</b> · 상단 [+ 종목 추가] 버튼(GitHub 이슈 자동 처리)이 가장 간편합니다. data_watch.json 직접 편집이나 대화 요청으로도 추가할 수 있습니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
       </section>
@@ -800,52 +801,7 @@
         </footer>
       </section>
 
-      <!-- ══════════ 주요 ETF ══════════ -->
-      <section id="secT" style="display:none">
-        <div class="controls">
-          <button class="rbtn on" id="gtUS">미국 <span class="qm" data-k="G_ETF_US">?</span></button>
-          <button class="rbtn" id="gtKR">한국 <span class="qm" data-k="G_ETF_KR">?</span></button>
-          <button class="rbtn" id="gtCN">중국 <span class="qm" data-k="G_ETF_CN">?</span></button>
-          <button class="rbtn" id="gtJP">일본 <span class="qm" data-k="G_ETF_JP">?</span></button>
-        </div>
-        <div class="controls" id="chipsT"></div>
-        <div class="controls" id="rangesT">
-          <button class="rbtn" data-r="1m">1개월</button>
-          <button class="rbtn" data-r="3m">3개월</button>
-          <button class="rbtn on" data-r="1y">1년</button>
-          <button class="rbtn" data-r="3y">3년</button>
-          <button class="rbtn" data-r="5y">5년</button>
-          <button class="rbtn" data-r="10y">10년</button>
-          <button class="rbtn" data-r="all">전체</button>
-          <div class="custom">
-            <input type="date" id="d0T" aria-label="시작일"><span style="color:var(--faint)">–</span>
-            <input type="date" id="d1T" aria-label="종료일">
-            <button class="go" id="goT">적용</button>
-          </div>
-        </div>
-        <div class="main">
-        <div class="panel">
-          <h2 class="ptitle">요약</h2>
-          <div id="barsT"></div>
-          <div class="note">행을 누르면 해당 지표가 선택됩니다</div>
-        </div>
-        <div class="panel">
-          <h2 class="ptitle" id="titleT">주요 ETF 비교</h2>
-          <div class="hero" id="heroT"></div>
-          <div class="chart-wrap">
-            <svg class="big" id="chartT" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
-            <div class="tip" id="tipT"></div>
-          </div>
-          <div class="legend" id="legT"></div>
-          <div class="note" id="noteT"></div>
-        </div>
-        </div>
-        <footer class="foot">
-          <div><b>데이터</b> · 야후 파이낸스 일별 종가. 국가별 대표 지수 추종 ETF로, 표시통화가 상이합니다(미국·중국·일본 EWJ: 달러 / 한국: 원 / 닛케이225 ETF: 엔).</div>
-          <div><b>유의</b> · 해외 상장 ETF 수익률에는 환율 변동이 섞여 있어 현지 지수와 다를 수 있습니다. 운용보수·추적오차도 지수와의 괴리 요인입니다.</div>
-          <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
-        </footer>
-      </section>
+      
 
     </div>
   </div>
@@ -966,10 +922,6 @@ G_LIQ:{t:"유동성",b:"시중 통화량과 중앙은행 자산으로 자금의 
 LIQ_US_M2:{t:"미국 M2(전년비)",b:"FRED(M2SL) 월별을 전년동월비로 변환. 팬데믹기 급증 후 2022~23년 사상 첫 역성장을 기록했으며, 물가·자산가격의 선행 신호로 참고됩니다."},
 LIQ_KR_M2:{t:"한국 M2(전년비)",b:"한국은행 ECOS(광의통화 M2 말잔) 월별을 전년동월비로 변환. 대출·부동산 경기와 연동성이 높습니다. ECOS 인증키 필요."},
 LIQ_US_CB:{t:"연준 총자산(전년비)",b:"FRED(WALCL) 주간 대차대조표 총자산의 전년동주비. 양수 확대는 QE(완화), 음수는 QT(긴축) 국면을 뜻하며 글로벌 유동성의 원천 지표입니다."},
-G_ETF_US:{t:"미국 ETF",b:"미국 증시 상장 대표 지수 ETF(달러 표시). 세계 자금 흐름의 중심으로 유동성이 가장 풍부합니다."},
-G_ETF_KR:{t:"한국 ETF",b:"국내 증시 상장 ETF(원화 표시). 국내 거래시간에 거래되며 환전 없이 접근 가능한 수단입니다."},
-G_ETF_CN:{t:"중국 ETF",b:"미국 상장 중국 노출 ETF(달러 표시). 본토 접근 제약 탓에 홍콩 상장주·ADR 중심으로 구성됩니다."},
-G_ETF_JP:{t:"일본 ETF",b:"일본 증시 노출 ETF. EWJ는 달러, 닛케이225 ETF(1321)는 엔 표시라 환율 효과가 다르게 반영됩니다."},
 ECON_KR_CORE:{t:"한국 근원 CPI(전년비)",b:"농산물·석유류 제외 지수(한국은행 ECOS)를 전년동월비로 변환. 기조적 물가 흐름을 보여 통화정책 판단에 중시됩니다."},
 ECON_KR_UNEMP:{t:"한국 실업률",b:"한국은행 ECOS(통계청 경제활동인구조사) 월별. 계절 요인이 커 추세 비교가 유용합니다."},
 ECON_EA_CPI:{t:"유로존 HICP(전년비)",b:"유럽 조화 소비자물가(Eurostat, FRED 경유)를 전년동월비로 변환. ECB 통화정책의 기준 물가입니다."},
@@ -2170,117 +2122,7 @@ window.IN_hero=function(sfx,html){
   el.style.display="flex";el.innerHTML=html;
 };
 
-// ══════════ 주요 ETF ══════════
-const ETF=(()=>{
-const GRP={US:{g:"ETF_US",n:"미국"},KR:{g:"ETF_KR",n:"한국"},CN:{g:"ETF_CN",n:"중국"},JP:{g:"ETF_JP",n:"일본"}};
-const PAL=["#17694F","#2F4B7C","#3D8A8C","#C9A227","#A63D40","#E8862E","#6B4E9B"];
-let grp="US",sel="ALL",curRange="1y",cT0=null,cT1=null,inited=false;
-const S=()=>window.IDX_DATA&&window.IDX_DATA.series?window.IDX_DATA.series:null;
-const fmtN=v=>v.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
-function rangeWindow(){
-  const now=Date.now();
-  if(cT0!=null)return[cT0,Math.min(cT1,now)];
-  const sp={"1m":31,"3m":92,"1y":366,"3y":3*366,"5y":5*366,"10y":10*366};
-  if(curRange==="all")return[Date.parse("1990-01-01"),now];
-  return[now-sp[curRange]*DAY,now];
-}
-function keysOf(){
-  const s=S();if(!s)return[];
-  return Object.keys(s).filter(k=>s[k].group===GRP[grp].g);
-}
-function buildChips(){
-  const el=document.getElementById("chipsT");el.innerHTML="";
-  const ks=keysOf(),s=S();
-  const mkBtn=(label,key,qk)=>{
-    const b=document.createElement("button");
-    b.className="rbtn"+((sel===key)?" on":"");
-    b.innerHTML=label+(qk?' <span class="qm" data-k="'+qk+'">?</span>':'');
-    b.onclick=()=>{sel=key;buildChips();draw();};
-    el.appendChild(b);
-  };
-  mkBtn("전체 비교","ALL",null);
-  ks.forEach(k=>mkBtn(s[k].label,k,k));
-  if(!ks.length){
-    el.innerHTML='<span class="note" style="margin:0">'+GRP[grp].n+'에 등록된 관심 ETF가 없습니다. 추가할 ETF의 티커(또는 종목명)를 알려주시면 수집기에 등록해 드립니다.</span>';
-  }
-}
-function draw(){
-  const s=S(),svg=document.getElementById("chartT"),tip=document.getElementById("tipT");
-  if(!s){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">data_indices.js 파일을 준비해 주십시오.</text>';return;}
-  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
-  const ks=keysOf();
-  if(!ks.length){svg.innerHTML='<text x="410" y="170" text-anchor="middle" fill="#98A1A9" font-size="13">'+GRP[grp].n+'에 등록된 관심 ETF가 없습니다.</text>';document.getElementById("legT").innerHTML="";window.IN_hero("T",null);drawBarsT();return;}
-  if(sel!=="ALL"&&ks.indexOf(sel)<0)sel="ALL";
-  if(sel==="ALL"){
-    document.getElementById("titleT").textContent=GRP[grp].n+" 주요 ETF 비교 (구간 시작=100)";
-    const list=[];
-    ks.forEach((k,i)=>{
-      const w=window.IN_inWin(s[k].pts,t0,t1);if(w.length<2)return;
-      const base=w[0][1];
-      list.push({label:s[k].label,color:PAL[i%PAL.length],actual:w.map(p=>p[1]),pts:w.map(p=>[Date.parse(p[0]),p[1]/base*100])});
-    });
-    const r=window.IN_drawLines(svg,tip,"crossT",list,1,fmtN);
-    document.getElementById("legT").innerHTML=list.map(s2=>{
-      const chg=s2.pts[s2.pts.length-1][1]-100;
-      return '<span><i style="background:'+s2.color+'"></i>'+s2.label+' <span class="'+(chg>0?"up":chg<0?"down":"flat")+'">('+(chg>0?"+":"")+chg.toFixed(1)+'%)</span></span>';
-    }).join("")+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
-    document.getElementById("noteT").textContent="각 ETF를 구간 시작일=100으로 재계산한 상대 성과입니다. 표시통화(달러·원·엔)가 달라 절대 가격은 개별 선택 시 표시됩니다.";
-    window.IN_hero("T",null);
-  }else{
-    const d=s[sel],u=d.unit||"";
-    document.getElementById("titleT").textContent=d.label+" 추이"+(u?" ("+u+")":"");
-    const w=window.IN_inWin(d.pts,t0,t1).map(p=>[Date.parse(p[0]),p[1]]);
-    const col=PAL[Math.max(0,ks.indexOf(sel))%PAL.length];
-    const r=window.IN_drawLines(svg,tip,"crossT",w.length?[{label:d.label,color:col,pts:w}]:[],2,fmtN);
-    if(w.length){
-      const chg=(w[w.length-1][1]-w[0][1])/w[0][1]*100;
-      const cls=chg>0?"up":chg<0?"down":"flat";
-      document.getElementById("legT").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(w[w.length-1][1])+(u?' '+u:'')+'</span><span class="'+cls+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
-      window.IN_hero("T",'<span class="hv">'+fmtN(w[w.length-1][1])+'</span>'+(u?'<span class="hu">'+u+'</span>':'')+'<span class="hl">'+d.label+'</span><span class="hc '+cls+'">구간 변동 '+(chg>0?"+":"")+chg.toFixed(2)+'%</span>');
-    }else{document.getElementById("legT").innerHTML="";window.IN_hero("T",null);}
-    document.getElementById("noteT").textContent="";
-  }
-  drawBarsT();
-}
-function drawBarsT(){
-  const s=S(),svg=document.getElementById("barsT");
-  if(!svg)return;
-  if(!s){window.IN_hbar0(svg,[],v=>"",null);return;}
-  const rw=rangeWindow(),t0=rw[0],t1=rw[1];
-  const rows=[];
-  keysOf().forEach(k=>{const w=window.IN_inWin(s[k].pts,t0,t1);if(w.length<2)return;
-    rows.push({k,label:s[k].label,val:(w[w.length-1][1]-w[0][1])/w[0][1]*100});});
-  window.IN_hbar0(svg,rows,v=>(v>0?"+":"")+v.toFixed(1)+"%",k=>{sel=k;buildChips();draw();});
-}
-function setGrpButtons(){
-  [["gtUS","US"],["gtKR","KR"],["gtCN","CN"],["gtJP","JP"]].forEach(p=>{
-    document.getElementById(p[0]).classList.toggle("on",grp===p[1]);
-  });
-}
-function wire(){
-  [["gtUS","US"],["gtKR","KR"],["gtCN","CN"],["gtJP","JP"]].forEach(p=>{
-    document.getElementById(p[0]).onclick=()=>{grp=p[1];sel="ALL";setGrpButtons();buildChips();draw();};
-  });
-  document.querySelectorAll("#rangesT .rbtn").forEach(b=>{
-    b.onclick=()=>{curRange=b.dataset.r;cT0=cT1=null;
-      document.querySelectorAll("#rangesT .rbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");draw();};
-  });
-  document.getElementById("goT").onclick=()=>{
-    const d0=document.getElementById("d0T").value,d1=document.getElementById("d1T").value;
-    if(!d0||!d1)return alert("시작일과 종료일을 모두 지정하십시오.");
-    let a=Date.parse(d0),b2=Date.parse(d1);
-    if(a>b2){const t=a;a=b2;b2=t;}
-    cT0=a;cT1=b2;
-    document.querySelectorAll("#rangesT .rbtn").forEach(x=>x.classList.remove("on"));
-    draw();
-  };
-}
-function init(){
-  if(!inited){inited=true;wire();}
-  setGrpButtons();buildChips();draw();
-}
-return{init};
-})();
+
 
 // ══════════ 국가 구조 탭 생성기 ══════════
 function IN_ctryTab(sfx,cfg){
@@ -2584,10 +2426,10 @@ return{init};
 
 // ══════════ 탭 전환 (2대 분류 · 12개 탭) ══════════
 (function(){
-const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),T:document.getElementById("secT"),W:document.getElementById("secW"),N:document.getElementById("secN"),P2:document.getElementById("secP2"),P3:document.getElementById("secP3"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),D:document.getElementById("secD"),P:document.getElementById("secP"),L:document.getElementById("secL")};
-const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),T:document.getElementById("navT"),W:document.getElementById("navW"),N:document.getElementById("navN"),P2:document.getElementById("navP2"),P3:document.getElementById("navP3"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),D:document.getElementById("navD"),P:document.getElementById("navP"),L:document.getElementById("navL")};
+const secs={R:document.getElementById("secR"),F:document.getElementById("secF"),I:document.getElementById("secI"),S:document.getElementById("secS"),W:document.getElementById("secW"),N:document.getElementById("secN"),P2:document.getElementById("secP2"),P3:document.getElementById("secP3"),C:document.getElementById("secC"),X:document.getElementById("secX"),B:document.getElementById("secB"),E:document.getElementById("secE"),U:document.getElementById("secU"),G:document.getElementById("secG"),D:document.getElementById("secD"),P:document.getElementById("secP"),L:document.getElementById("secL")};
+const navs={R:document.getElementById("navR"),F:document.getElementById("navF"),I:document.getElementById("navI"),S:document.getElementById("navS"),W:document.getElementById("navW"),N:document.getElementById("navN"),P2:document.getElementById("navP2"),P3:document.getElementById("navP3"),C:document.getElementById("navC"),X:document.getElementById("navX"),B:document.getElementById("navB"),E:document.getElementById("navE"),U:document.getElementById("navU"),G:document.getElementById("navG"),D:document.getElementById("navD"),P:document.getElementById("navP"),L:document.getElementById("navL")};
 const stamp=document.getElementById("stamp");
-const GROUPS={A:["E","U","G","R","D","L","F"],B:["I","S","T","W","B","C","P","X"],C:["N","P2","P3"]};
+const GROUPS={A:["E","U","G","R","D","L","F"],B:["I","S","W","B","C","P","X"],C:["N","P2","P3"]};
 function groupOf(k){for(const g in GROUPS){if(GROUPS[g].indexOf(k)>=0)return g;}return "A";}
 let fxStarted=false;
 function show(k){
@@ -2605,7 +2447,6 @@ function show(k){
   if(k==="F"){stamp.textContent="환율 · ECB 일별 기준환율";if(!fxStarted){fxStarted=true;FX.init();}}
   if(k==="I"){stamp.textContent="종합 주가지수 · 수집 파일 기반"+gen;IDX.init();}
   if(k==="S"){stamp.textContent="산업별 주가지수 · 수집 파일 기반"+gen;SEC.init();}
-  if(k==="T"){stamp.textContent="관심 ETF · 관심 종목 직접 관리"+gen;ETF.init();}
   if(k==="W"){stamp.textContent="관심 주가 · 관심 종목 직접 관리"+gen;WCH.init();}
   if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
   if(k==="P2"){stamp.textContent="IPO 청약 일정 · 관심 업체 수기 관리"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}

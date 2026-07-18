@@ -123,17 +123,6 @@ try:
         except Exception as e:
             print(f"[FAIL] {k}: {e}")
 
-    # ── 관심 ETF (직접 추가 관리) ──
-    # 추가 방법: 아래 딕셔너리에 한 줄 추가 후 저장 → 다음 수집부터 자동 반영
-    #   "ETF_고유키": ("야후티커", "표시명", "ETF_US|ETF_KR|ETF_CN|ETF_JP", "달러|원|엔"),
-    # 예시: "ETF_SCHD": ("SCHD", "SCHD(미국 배당)", "ETF_US", "달러"),
-    etf = {
-    }
-    for k, (tic, lb, grp, unit) in etf.items():
-        try:
-            add(k, lb, grp, yff(tic), unit)
-        except Exception as e:
-            print(f"[FAIL] {k}: {e}")
 except Exception as e:
             print(f"[FAIL] {k}: {e}")
 except Exception as e:
@@ -823,16 +812,35 @@ if KRX_READY:
             "KQ_ENT": "오락",
         }, "")
 
-        # ── 관심 주가 (직접 추가 관리) ──
-        # 추가 방법: "키": ("종목코드", "표시명") 한 줄 추가 → 다음 수집부터 자동 반영
+        # ── 관심 주가 ──
+        # 기본 종목 + data_watch.json(items: [{"code":"6자리","name":"표시명"}]) 병합
         watch = {
             "W_NAVER": ("035420", "네이버"),
             "W_SKSIG": ("260870", "SK시그넷"),
         }
+        try:
+            if os.path.exists("data_watch.json"):
+                import json as _wj
+                with open("data_watch.json", encoding="utf-8") as fp:
+                    wj = _wj.load(fp)
+                added = 0
+                for it in wj.get("items", []):
+                    code = str(it.get("code", "")).strip()
+                    nm = str(it.get("name", "")).strip() or code
+                    if code:
+                        watch["W_" + code] = (code, nm)
+                        added += 1
+                print(f"[WATCH] data_watch.json {added}건 반영")
+        except Exception as e:
+            print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]}")
         for k, (code, lb) in watch.items():
             try:
-                s = stock.get_market_ohlcv_by_date(f, t, code)["종가"]
-                add(k, lb, "WATCH", s, "원")
+                if code.isdigit() and len(code) == 6:
+                    s = stock.get_market_ohlcv_by_date(f, t, code)["종가"]
+                    add(k, lb, "WATCH", s, "원")
+                else:
+                    unit = "달러" if "." not in code else "현지통화"
+                    add(k, lb, "WATCH", yff(code), unit)
             except Exception as e:
                 print(f"[FAIL] {k}({code}): {e}")
     except Exception as e:
