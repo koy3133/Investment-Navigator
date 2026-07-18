@@ -29,11 +29,9 @@ jobs:
               out.write(f"changed={'true' if changed else 'false'}\n")
               raise SystemExit(0)
           title = os.environ.get("TITLE", "")
-          body = os.environ.get("BODY") or ""
           mode = "del" if "종목삭제" in title else "add"
-          text = title + " " + body
           clean = re.sub(r"\b(NYSE|NASDAQ|AMEX|ARCA|NYSEARCA|OTC|KRX|KOSPI|KOSDAQ|KONEX)\b[:\s]*",
-                         " ", text, flags=re.I)
+                         " ", title, flags=re.I)
           m = re.search(r"\b(\d{6})\b", clean)
           code = m.group(1) if m else None
           if not code:
@@ -64,7 +62,7 @@ jobs:
           items.append({"code": code, "name": name})
           d["items"] = items
           json.dump(d, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
-          finish(True, f"{name}({code}) 등록 완료. 수집을 실행했으며 몇 분 뒤 대시보드에 표시됩니다.")
+          finish(True, f"{name}({code}) 등록 완료. 수집을 실행했으며 약 15~20분 뒤(수집 완료 후) 대시보드에 표시됩니다.")
           EOF
       - name: 목록 커밋
         if: steps.parse.outputs.changed == 'true'
