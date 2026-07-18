@@ -488,7 +488,12 @@ if ECOS_KEY:
                                ("GDP_CN_REAL", "중국", "중국 실질 GDP(전년비)"),
                                ("GDP_JP_REAL", "일본", "일본 실질 GDP(전년비)")]:
             try:
-                code = nmap_g.get(cc) or nmap_g.get("유로지역" if cc == "유로존" else cc)
+                code = nmap_g.get(cc)
+                if not code and cc == "유로존":
+                    for nm2, cd2 in nmap_g.items():
+                        if "유로" in nm2:
+                            code = cd2
+                            break
                 if not code:
                     print(f"[MISS] {key}: '{cc}' 항목 없음")
                     continue
@@ -600,8 +605,8 @@ if os.getenv("ECOS_KEY"):
                         errs.append(f"{nm}:데이터없음")
                         continue
                     s = raw[raw.index >= pd.Timestamp(START)]
-                    if len(s) < 12 or (pd.Timestamp(END) - s.index[-1]).days > 120:
-                        errs.append(f"{nm}:{len(s)}점·구간부족")
+                    if len(s) < 12 or (pd.Timestamp(END) - s.index[-1]).days > 400:
+                        errs.append(f"{nm}:{len(s)}점·구간부족(최근 {s.index[-1].date() if len(s) else '없음'})")
                         continue
                     if best is None or len(s) > best[0]:
                         best = (len(s), nm, stat, path, s)
