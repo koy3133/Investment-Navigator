@@ -1,0 +1,72 @@
+name: watch-add
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+  actions: write
+
+jobs:
+  add:
+    if: contains(github.event.issue.title, '종목추가') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 종목 파싱·목록 반영
+        id: parse
+        env:
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - << 'EOF'
+          import json, os, re, sys
+          out = open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8")
+          text = (os.environ.get("TITLE", "") + " " + (os.environ.get("BODY") or ""))
+          m = re.search(r"\b(\d{6})\b", text)
+          code = m.group(1) if m else None
+          if not code:
+              m2 = re.search(r"종목추가[:\s]*([A-Za-z][A-Za-z0-9.\-]{0,11})", text)
+              code = m2.group(1).upper() if m2 else None
+          if not code:
+              out.write("ok=false\nmsg=종목을 인식하지 못했습니다. 제목 예: '종목추가: 005930 삼성전자' 또는 '종목추가: AAPL 애플'\n")
+              sys.exit(0)
+          after = text.split(code, 1)[1]
+          name = re.sub(r"[\[\]:#*_`]", " ", after).strip().split("\n")[0].strip()[:20] or code
+          p = "data_watch.json"
+          d = {"items": []}
+          if os.path.exists(p):
+              try:
+                  d = json.load(open(p, encoding="utf-8"))
+              except Exception:
+                  d = {"items": []}
+          items = d.get("items", [])
+          if any(str(it.get("code")) == code for it in items):
+              out.write(f"ok=dup\nmsg={code}는 이미 등록되어 있습니다.\n")
+              sys.exit(0)
+          items.append({"code": code, "name": name})
+          d["items"] = items
+          json.dump(d, open(p, "w", encoding="utf-8"), ensure_ascii=False, indent=2)
+          out.write(f"ok=true\nmsg={name}({code}) 등록 완료. 수집을 실행했으며 몇 분 뒤 대시보드에 표시됩니다.\n")
+          EOF
+      - name: 목록 커밋
+        if: steps.parse.outputs.ok == 'true'
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add data_watch.json
+          git diff --cached --quiet || git commit -m "관심 종목 추가 (#${{ github.event.issue.number }})"
+          git push
+      - name: 수집 즉시 실행
+        if: steps.parse.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run collect.yml || true
+      - name: 이슈 답글·닫기
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment ${{ github.event.issue.number }} --body "${{ steps.parse.outputs.msg }}"
+          gh issue close ${{ github.event.issue.number }} || true
