@@ -6,6 +6,10 @@ on:
     - cron: "0 8 * * 1-5"   # UTC 08:00 = 한국시간 17:00 평일 (한국 종가 반영)
   workflow_dispatch:         # Actions 탭에서 수동 실행 버튼 활성화
 
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -39,5 +43,5 @@ jobs:
           git add data_ipo.js || true
           git add data_sub.js || true
           git commit -m "data update $(date -u +%F)" || echo "변경 없음"
-          git pull --rebase origin main || true
+          git pull --rebase -X theirs origin main || true
           git push
