@@ -203,6 +203,18 @@ try:
             ea_err = str(e)[:120]
     else:
         print(f"[FAIL] ECON_EA_CPI: {ea_err}")
+
+    ea_gdp_err = ""
+    for sid in ("CLVMNACSCAB1GQEA19", "CLVMNACSCAB1GQEA20", "NAEXKP01EZQ652S"):
+        try:
+            s = yoy(fred_series(sid, trim=False), 4)
+            if add("GDP_EA_REAL", "유로존 실질 GDP(전년비)", "GDP", s, "%"):
+                print(f"       (유로존 실질 GDP: {sid})")
+                break
+        except Exception as e:
+            ea_gdp_err = str(e)[:120]
+    else:
+        print(f"[FAIL] GDP_EA_REAL(FRED): {ea_gdp_err}")
 except Exception as e:
     print("[FRED 수집 실패]", e)
 
@@ -488,6 +500,8 @@ if ECOS_KEY:
                                ("GDP_CN_REAL", "중국", "중국 실질 GDP(전년비)"),
                                ("GDP_JP_REAL", "일본", "일본 실질 GDP(전년비)")]:
             try:
+                if key in series:
+                    continue
                 code = nmap_g.get(cc)
                 if not code and cc == "유로존":
                     for nm2, cd2 in nmap_g.items():
