@@ -866,6 +866,8 @@ if KRX_READY:
                 with open("data_watch.json", encoding="utf-8") as fp:
                     wdata = fp.read()
             if wdata:
+                import re as _wre
+                wdata = _wre.sub(r",\s*([\]}])", r"\1", wdata)  # 끝 쉼표 자동 보정
                 for it in _wj.loads(wdata).get("items", []):
                     code = str(it.get("code", "")).strip()
                     nm = str(it.get("name", "")).strip() or code
@@ -873,18 +875,37 @@ if KRX_READY:
                         watch["W_" + code.replace(".", "_")] = (code, nm)
                 print(f"[WATCH] 관심 종목 {len(watch)}건")
         except Exception as e:
-            print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]}")
-        if not watch and not os.path.exists("data_watch.json"):
+            print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]} · 쉼표/괄호 확인 필요(기본 종목으로 대체 수집합니다)")
+        if not watch:
             watch = {"W_035420": ("035420", "네이버"), "W_260870": ("260870", "SK시그넷")}
-            print("[WATCH] 목록 없음 → 기본 종목 사용")
+            print("[WATCH] 목록이 비었거나 파싱 실패 → 기본 종목으로 대체 수집")
         for k, (code, lb) in watch.items():
             try:
+                cap = None
                 if code.isdigit() and len(code) == 6:
                     s = stock.get_market_ohlcv_by_date(f, t, code)["종가"]
-                    add(k, lb, "WATCH", s, "원")
+                    ok = add(k, lb, "WATCH", s, "원")
+                    try:
+                        f2 = (END - dt.timedelta(days=21)).strftime("%Y%m%d")
+                        cap = float(stock.get_market_cap_by_date(f2, t, code)["시가총액"].iloc[-1])
+                    except Exception:
+                        cap = None
                 else:
                     unit = "달러" if "." not in code else "현지통화"
-                    add(k, lb, "WATCH", yff(code), unit)
+                    ok = add(k, lb, "WATCH", yff(code), unit)
+                    try:
+                        fi = yf.Ticker(code).fast_info
+                        for kk in ("market_cap", "marketCap"):
+                            try:
+                                cap = float(fi[kk])
+                                if cap:
+                                    break
+                            except Exception:
+                                pass
+                    except Exception:
+                        cap = None
+                if ok and cap:
+                    series[k]["mcap"] = cap
             except Exception as e:
                 print(f"[FAIL] {k}({code}): {e}")
     except Exception as e:

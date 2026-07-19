@@ -133,7 +133,7 @@
     <button id="navF" data-g="A">환율</button>
     <button id="navI" data-g="B">종합주가지수</button>
     <button id="navS" data-g="B">산업별 주가지수</button>
-    <button id="navW" data-g="B">관심 주가</button>
+    <button id="navW" data-g="B">관심 주식</button>
     <button id="navB" data-g="B">채권</button>
     <button id="navC" data-g="B">원자재</button>
     <button id="navP" data-g="B">부동산</button>
@@ -652,7 +652,7 @@
           <div class="note">행을 누르면 해당 종목이 선택됩니다</div>
         </div>
         <div class="panel">
-          <h2 class="ptitle" id="titleW">관심 주가</h2>
+          <h2 class="ptitle" id="titleW">관심 주식</h2>
           <div class="hero" id="heroW"></div>
           <div class="chart-wrap">
             <svg class="big" id="chartW" viewBox="0 0 820 340" preserveAspectRatio="none"></svg>
@@ -937,7 +937,7 @@ G_M2:{t:"M2(광의통화)",b:"현금·예금·MMF 등 시중 유동성 총량의
 G_CBA:{t:"중앙은행 총자산",b:"양적완화·긴축 규모를 보여주는 중앙은행 대차대조표의 전년비. 증가는 유동성 공급(QE), 감소는 회수(QT) 국면을 뜻합니다."},
 G_GDPR:{t:"실질 GDP(전년비)",b:"물가 효과를 제거한 경제 성장률(전년동기비). 잠재성장률 대비 수준이 경기 과열·침체 판단의 기준입니다."},
 G_GDPN:{t:"명목 GDP(전년비)",b:"물가를 포함한 성장률로 기업 매출·세수·부채비율의 분모와 직결됩니다. 실질과의 격차는 물가 압력을 시사합니다."},
-G_WATCH:{t:"관심 주가",b:"직접 등록한 개별 종목의 일별 종가(KRX)입니다. 비교 시 구간 시작=100으로 재계산하며, 절대가는 개별 선택 시 표시됩니다."},
+G_WATCH:{t:"관심 주식",b:"직접 등록한 개별 종목의 일별 종가(KRX)입니다. 비교 시 구간 시작=100으로 재계산하며, 절대가는 개별 선택 시 표시됩니다."},
 RATE_KR_DEPO:{t:"한국 정기예금 금리",b:"예금은행이 신규 취급한 정기예금의 가중평균 금리(월별, 한국은행 ECOS). 기준금리 변화가 실제 수신 상품에 전달되는 속도와 예금·채권 간 상대 매력을 보여줍니다."},
 RE_KR_WS:{t:"전국 아파트 월세가격지수",b:"한국은행 ECOS 등재 월세(통합) 지수(월별). 전세의 월세 전환 흐름과 임대료 환경 판단에 활용됩니다."},
 LIQ_EA_CB:{t:"ECB 총자산(전년비)",b:"FRED(ECBASSETSW) 주간 대차대조표의 전년동주비. 유로존 유동성 공급의 원천 지표입니다."},
@@ -2073,7 +2073,7 @@ function draw(){
       if(cfg.mode==="raw"){const df=last-first;chgTxt='구간 변동 '+(df>0?"+":"")+df.toFixed(2)+"%p";}
       else{const pc=(last-first)/first*100;chgTxt='구간 변동 '+(pc>0?"+":"")+pc.toFixed(2)+"%";}
       const cls=(last-first)>0?"up":(last-first)<0?"down":"flat";
-      $("leg").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(last)+(u?' '+u:'')+'</span><span class="'+cls+'">'+chgTxt+'</span>'+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+      $("leg").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(last)+(u?' '+u:'')+'</span><span class="'+cls+'">'+chgTxt+'</span>'+(d.mcap?'<span>시가총액 '+window.IN_mcap(d.mcap,u)+'</span>':'')+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
       window.IN_hero(sfx,'<span class="hv">'+fmtN(last)+'</span>'+(u?'<span class="hu">'+u+'</span>':'')+'<span class="hl">'+d.label+'</span><span class="hc '+cls+'">'+chgTxt+'</span>');
     }else $("leg").innerHTML="";
     $("note").textContent=(cfg.itemNote&&cfg.itemNote[sel])||"";
@@ -2115,6 +2115,17 @@ return{init};
 }
 
 
+window.IN_mcap=function(v,u){
+  const dollar=(u==="달러"||u==="현지통화");
+  if(dollar){
+    if(v>=1e12)return (v/1e12).toFixed(2)+"조 "+u;
+    if(v>=1e8)return Math.round(v/1e8).toLocaleString("en-US")+"억 "+u;
+    return Math.round(v).toLocaleString("en-US")+" "+u;
+  }
+  if(v>=1e12)return (v/1e12).toFixed(1)+"조 원";
+  if(v>=1e8)return Math.round(v/1e8).toLocaleString("en-US")+"억 원";
+  return Math.round(v).toLocaleString("en-US")+" 원";
+};
 window.IN_hero=function(sfx,html){
   const el=document.getElementById("hero"+sfx);
   if(!el)return;
@@ -2292,7 +2303,7 @@ const DEP=IN_simpleTab("D",{group:"DEPO",name:"정기예금",mode:"raw",infoKey:
  allNote:"예금은행이 신규 취급한 정기예금의 가중평균 금리(%)입니다.",
  itemNote:{RATE_KR_DEPO:"월별 신규취급액 기준이라 시중 최고금리와는 차이가 있습니다. 기준금리 대비 스프레드 추이가 유용합니다."}});
 
-const WCH=IN_simpleTab("W",{group:"WATCH",name:"관심 주가",mode:"idx",infoKey:"G_WATCH",
+const WCH=IN_simpleTab("W",{group:"WATCH",name:"관심 주식",mode:"idx",infoKey:"G_WATCH",
  emptyMsg:"등록된 관심 종목이 없습니다. 추가할 종목명(또는 종목코드)을 알려주시면 수집기에 등록해 드립니다.",
  allNote:"종목별 가격 수준이 달라 구간 시작=100으로 재계산해 비교합니다. 절대가는 개별 선택 시 표시됩니다.",
  itemNote:{W_SKSIG:"코넥스 종목은 유동성이 낮아 가격 변동·호가 공백이 클 수 있습니다."}});
@@ -2447,7 +2458,7 @@ function show(k){
   if(k==="F"){stamp.textContent="환율 · ECB 일별 기준환율";if(!fxStarted){fxStarted=true;FX.init();}}
   if(k==="I"){stamp.textContent="종합 주가지수 · 수집 파일 기반"+gen;IDX.init();}
   if(k==="S"){stamp.textContent="산업별 주가지수 · 수집 파일 기반"+gen;SEC.init();}
-  if(k==="W"){stamp.textContent="관심 주가 · 관심 종목 직접 관리"+gen;WCH.init();}
+  if(k==="W"){stamp.textContent="관심 주식 · 관심 종목 직접 관리"+gen;WCH.init();}
   if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
   if(k==="P2"){stamp.textContent="IPO 청약 일정 · 관심 업체 수기 관리"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
   if(k==="P3"){stamp.textContent="분양 청약 일정 · 청약홈 오픈API"+(window.SUB_DATA&&window.SUB_DATA.generated?" · 갱신일 "+window.SUB_DATA.generated:"");SUBM.init();}
