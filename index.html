@@ -663,7 +663,7 @@
         </div>
         </div>
         <footer class="foot">
-          <div><b>데이터</b> · 국내(6자리 코드)는 KRX, 해외 티커(AAPL, 7203.T 등)는 야후 파이낸스 일별 종가이며, 비교 시 구간 시작=100으로 재계산합니다. 통화가 달라 비교는 등락률 기준입니다.</div>
+          <div><b>데이터</b> · 국내(6자리 코드)는 KRX, 해외 티커(AAPL, 7203.T 등)는 야후 파이낸스 일별 종가이며, 비교 시 구간 시작=100으로 재계산합니다. 통화가 달라 비교는 등락률 기준입니다. 시가총액은 현재 상장주식수 기준으로 선택 구간 말 주가에 환산한 값이라, 과거 시점의 증자·소각 등 주식수 변동은 반영되지 않습니다.</div>
           <div><b>관리</b> · 상단 [+ 종목 추가] / [− 종목 삭제] 버튼(GitHub 이슈 자동 처리)이 가장 간편합니다. 전체 목록은 data_watch.json 한 파일로 관리되며 직접 편집이나 대화 요청도 가능합니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
@@ -2073,7 +2073,7 @@ function draw(){
       if(cfg.mode==="raw"){const df=last-first;chgTxt='구간 변동 '+(df>0?"+":"")+df.toFixed(2)+"%p";}
       else{const pc=(last-first)/first*100;chgTxt='구간 변동 '+(pc>0?"+":"")+pc.toFixed(2)+"%";}
       const cls=(last-first)>0?"up":(last-first)<0?"down":"flat";
-      $("leg").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(last)+(u?' '+u:'')+'</span><span class="'+cls+'">'+chgTxt+'</span>'+(d.mcap?'<span>시가총액 '+window.IN_mcap(d.mcap,u)+'</span>':'')+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
+      $("leg").innerHTML='<span><i style="background:'+col+'"></i>'+d.label+' · 최근 '+fmtN(last)+(u?' '+u:'')+'</span><span class="'+cls+'">'+chgTxt+'</span>'+(d.mcap&&d.pts.length?'<span>시가총액 '+window.IN_mcap(d.mcap*last/d.pts[d.pts.length-1][1],u)+'</span>':'')+(r?'<span style="margin-left:auto;color:#98A1A9">'+fmtD(r.rt0)+' ~ '+fmtD(r.rt1)+'</span>':'');
       window.IN_hero(sfx,'<span class="hv">'+fmtN(last)+'</span>'+(u?'<span class="hu">'+u+'</span>':'')+'<span class="hl">'+d.label+'</span><span class="hc '+cls+'">'+chgTxt+'</span>');
     }else $("leg").innerHTML="";
     $("note").textContent=(cfg.itemNote&&cfg.itemNote[sel])||"";
