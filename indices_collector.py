@@ -25,6 +25,38 @@ KRX_READY = bool(os.getenv("KRX_ID") and os.getenv("KRX_PW"))
 series = {}
 
 
+# ──────────────── 원본 동기화 (GitHub → 로컬, 로컬 실행 시에만) ────────────────
+# 원본은 GitHub 저장소 하나입니다. 로컬 실행 시 최신 데이터·화면 파일을 내려받아
+# 두 대시보드가 항상 일치하도록 합니다. (클라우드 실행에서는 자동 생략)
+SYNC_REPO = "koy3133/Investment-Navigator"
+if os.getenv("GITHUB_ACTIONS") != "true":
+    try:
+        import requests as _rq
+        _pairs = [
+            ("data_watch.json", "data_watch.json"),
+            ("data_ipo.js",     "data_ipo.js"),
+            ("data_news.js",    "data_news.js"),
+            ("data_sub.js",     "data_sub.js"),
+            ("index.html",      "investment_navigator.html"),
+        ]
+        for _remote, _local in _pairs:
+            try:
+                _r = _rq.get(
+                    f"https://raw.githubusercontent.com/{SYNC_REPO}/main/{_remote}",
+                    timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+                if _r.status_code == 200 and _r.content:
+                    with open(_local, "wb") as _fp:
+                        _fp.write(_r.content)
+                    print(f"[SYNC] {_remote} → {_local}")
+                else:
+                    print(f"[SYNC] {_remote}: 원본에 없음(건너뜀)")
+            except Exception as _e:
+                print(f"[SYNC] {_remote} 실패: {str(_e)[:80]}")
+        print("[SYNC] 원본(GitHub) 동기화 완료 · 수집을 시작합니다.")
+    except Exception as _e:
+        print(f"[SYNC] 동기화 생략: {str(_e)[:100]}")
+
+
 def downsample(pts):
     """2년 이전 구간만 주기별로 솎아냄: 일별 1/5, 주간 1/2, 월간 이상 원본 유지"""
     cutoff = (END - dt.timedelta(days=730)).strftime("%Y-%m-%d")
@@ -812,24 +844,39 @@ if KRX_READY:
             "KQ_ENT": "오락",
         }, "")
 
-        # ── 관심 주가: data_watch.json이 전체 목록(추가·삭제 모두 파일 기준) ──
+        # ── 관심 주가: data_watch.json이 전체 목록 ──
+        # 로컬 실행 시 GitHub의 최신 목록을 먼저 내려받아 동기화(버튼 추가·삭제 반영)
         watch = {}
-        if os.path.exists("data_watch.json"):
+        wdata = None
+        if not os.getenv("GITHUB_ACTIONS"):
             try:
-                import json as _wj
+                import requests as _rq
+                _r = _rq.get("https://raw.githubusercontent.com/koy3133/"
+                             "Investment-Navigator/main/data_watch.json", timeout=10)
+                if _r.status_code == 200 and '"items"' in _r.text:
+                    wdata = _r.text
+                    with open("data_watch.json", "w", encoding="utf-8") as fp:
+                        fp.write(wdata)
+                    print("[WATCH] GitHub 최신 목록으로 동기화했습니다.")
+            except Exception:
+                print("[WATCH] GitHub 목록 조회 실패 → 로컬 파일 사용")
+        try:
+            import json as _wj
+            if wdata is None and os.path.exists("data_watch.json"):
                 with open("data_watch.json", encoding="utf-8") as fp:
-                    wj = _wj.load(fp)
-                for it in wj.get("items", []):
+                    wdata = fp.read()
+            if wdata:
+                for it in _wj.loads(wdata).get("items", []):
                     code = str(it.get("code", "")).strip()
                     nm = str(it.get("name", "")).strip() or code
                     if code:
                         watch["W_" + code.replace(".", "_")] = (code, nm)
-                print(f"[WATCH] data_watch.json {len(watch)}건 반영")
-            except Exception as e:
-                print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]}")
+                print(f"[WATCH] 관심 종목 {len(watch)}건")
+        except Exception as e:
+            print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]}")
         if not watch and not os.path.exists("data_watch.json"):
             watch = {"W_035420": ("035420", "네이버"), "W_260870": ("260870", "SK시그넷")}
-            print("[WATCH] data_watch.json 없음 → 기본 종목 사용")
+            print("[WATCH] 목록 없음 → 기본 종목 사용")
         for k, (code, lb) in watch.items():
             try:
                 if code.isdigit() and len(code) == 6:
