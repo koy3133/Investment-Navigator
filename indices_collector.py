@@ -676,19 +676,39 @@ try:
     rates_out = {}
 
     # 미국 목표 상·하한, ECB 예금금리 (FRED 일별)
+    def _fred_rate_rows(sid):
+        """검증된 fred_series 우선, 실패 시 CSV 직접 조회(최대 3회 재시도)"""
+        try:
+            s = fred_series(sid, trim=False)
+            return [(str(i.date()), float(v)) for i, v in s.items()]
+        except Exception:
+            pass
+        import time as _tm
+        last = None
+        for _i in range(3):
+            try:
+                _txt = _rrq.get("https://fred.stlouisfed.org/graph/fredgraph.csv",
+                                params={"id": sid}, timeout=90,
+                                headers={"User-Agent": "Mozilla/5.0"}).text
+                _rows2 = []
+                for _ln in _txt.strip().splitlines()[1:]:
+                    _p = _ln.split(",")
+                    if len(_p) >= 2 and _p[1] not in ("", "."):
+                        try:
+                            _rows2.append((_p[0][:10], float(_p[1])))
+                        except Exception:
+                            pass
+                if _rows2:
+                    return _rows2
+                last = "빈 응답"
+            except Exception as _e2:
+                last = str(_e2)[:80]
+                _tm.sleep(3)
+        raise RuntimeError(last or "조회 실패")
+
     for _k, _sid in (("US_UP", "DFEDTARU"), ("US_LO", "DFEDTARL"), ("EA_DF", "ECBDFR")):
         try:
-            _txt = _rrq.get("https://fred.stlouisfed.org/graph/fredgraph.csv",
-                            params={"id": _sid}, timeout=60,
-                            headers={"User-Agent": "Mozilla/5.0"}).text
-            _rows = []
-            for _ln in _txt.strip().splitlines()[1:]:
-                _p = _ln.split(",")
-                if len(_p) >= 2 and _p[1] not in ("", "."):
-                    try:
-                        _rows.append((_p[0][:10], float(_p[1])))
-                    except Exception:
-                        pass
+            _rows = _fred_rate_rows(_sid)
             if _rows:
                 rates_out[_k] = _chg(_rows)
                 print(f"[RATE] {_k}({_sid}): 최근 {rates_out[_k][-1][0]} {rates_out[_k][-1][1]}%")
@@ -842,7 +862,10 @@ if SUB_KEY:
                             "cond[RCEPT_ENDDE::GTE]": today_s},
                     timeout=60, headers={"User-Agent": "Mozilla/5.0"}).json()
                 rows = js.get("data")
-                if rows is None:
+                if not rows:
+                    if rows == [] or js.get("code") in (0, "0") or str(js.get("msg", "")) == "정상":
+                        print(f"[SUB]  {typ}: 현재 접수 예정 건 없음")
+                        continue
                     raise RuntimeError(str(js)[:180])
                 got0 = len(subs)
                 for r in rows:
