@@ -116,7 +116,7 @@
 <div class="frame">
   <header class="head">
     <div class="brand">Investment <em>Navigator</em></div>
-    <div class="stamp" id="stamp">01 기준금리 · 확인일 2026-07-07 · 내장 데이터</div>
+    <div class="stamp" id="stamp">수집 파일 기반 대시보드</div>
   </header>
   <nav class="pnav" id="gnav">
     <button class="gbtn on" data-g="A">투자 환경</button>
@@ -1035,7 +1035,7 @@ DATA.ALL={country:"비교",bank:"6개국",name:"정책금리 비교",dir:"hold",
     {label:"일본",color:"#A63D40",pts:DATA.JP.series[0].pts},
     {label:"한·미 금리차",color:"#808080",dash:"5 4",pts:KRUS}]};
 const ORDER=["ALL","KR","US","EA","GB","CN","JP"];
-const TODAY=new Date("2026-07-07T00:00:00").getTime();
+const TODAY=Date.now();
 let curKey="ALL",curRange="3y",cT0=null,cT1=null;
 
 const kpisEl=document.getElementById("kpisR");
@@ -2481,7 +2481,7 @@ function show(k){
   if(k==="E"){stamp.textContent="물가 · 수집 파일 기반(FRED·ECOS)"+gen;ECO.init();}
   if(k==="U"){stamp.textContent="고용 · 수집 파일 기반(FRED·ECOS)"+gen;EMP.init();}
   if(k==="G"){stamp.textContent="GDP · 수집 파일 기반(FRED·ECOS)"+gen;GDP.init();}
-  if(k==="R"){stamp.textContent="기준금리(통화정책) · 확인일 2026-07-07 · 내장 데이터";}
+  if(k==="R"){const rg=(window.RATES_UPD&&window.RATES_UPD.generated)?window.RATES_UPD.generated:"";stamp.textContent="기준금리(통화정책) · 한국·미국·유로존 자동 수집"+(rg?" · 갱신일 "+rg:"")+" · 영국·일본·중국 내장";}
   if(k==="D"){stamp.textContent="정기예금 금리 · 수집 파일 기반(ECOS)"+gen;DEP.init();}
   if(k==="L"){stamp.textContent="유동성·통화량 · 수집 파일 기반(FRED·ECOS)"+gen;LIQ.init();}
   if(k==="F"){stamp.textContent="환율 · ECB 일별 기준환율";if(!fxStarted){fxStarted=true;FX.init();}}
