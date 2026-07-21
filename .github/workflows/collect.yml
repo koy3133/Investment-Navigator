@@ -42,6 +42,7 @@ jobs:
           git add data_news.js || true
           git add data_ipo.js || true
           git add data_sub.js || true
+          git add data_rates.js || true
           git commit -m "data update $(date -u +%F)" || echo "변경 없음"
           git pull --rebase -X theirs origin main || true
           git push
