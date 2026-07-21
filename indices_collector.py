@@ -37,6 +37,7 @@ if os.getenv("GITHUB_ACTIONS") != "true":
             ("data_ipo.js",     "data_ipo.js"),
             ("data_news.js",    "data_news.js"),
             ("data_sub.js",     "data_sub.js"),
+            ("data_rates.js",   "data_rates.js"),
             ("index.html",      "investment_navigator.html"),
         ]
         for _remote, _local in _pairs:
@@ -658,6 +659,91 @@ if os.getenv("ECOS_KEY"):
         print(f"[FAIL] 주택가격지수(ECOS): {str(e)[:200]}")
 else:
     print("[안내] ECOS_KEY 미설정 → 한국 주택가격지수는 건너뜁니다.")
+
+# ──────────────── 정책금리(기준금리) 자동 수집 ────────────────
+try:
+    import requests as _rrq
+    import json as _rjs
+
+    def _chg(pairs):
+        """[(날짜,값)] → 값이 바뀐 시점만 남긴 변경 이력"""
+        out = []
+        for d, v in pairs:
+            if not out or abs(out[-1][1] - v) > 1e-9:
+                out.append([d, round(float(v), 4)])
+        return out
+
+    rates_out = {}
+
+    # 미국 목표 상·하한, ECB 예금금리 (FRED 일별)
+    for _k, _sid in (("US_UP", "DFEDTARU"), ("US_LO", "DFEDTARL"), ("EA_DF", "ECBDFR")):
+        try:
+            _txt = _rrq.get("https://fred.stlouisfed.org/graph/fredgraph.csv",
+                            params={"id": _sid}, timeout=60,
+                            headers={"User-Agent": "Mozilla/5.0"}).text
+            _rows = []
+            for _ln in _txt.strip().splitlines()[1:]:
+                _p = _ln.split(",")
+                if len(_p) >= 2 and _p[1] not in ("", "."):
+                    try:
+                        _rows.append((_p[0][:10], float(_p[1])))
+                    except Exception:
+                        pass
+            if _rows:
+                rates_out[_k] = _chg(_rows)
+                print(f"[RATE] {_k}({_sid}): 최근 {rates_out[_k][-1][0]} {rates_out[_k][-1][1]}%")
+        except Exception as _e:
+            print(f"[FAIL] 정책금리 {_k}({_sid}): {str(_e)[:100]}")
+
+    # 한국은행 기준금리 (ECOS 일별 → 실패 시 월별)
+    _ek = os.getenv("ECOS_KEY")
+    if _ek:
+        try:
+            _f8 = (END - dt.timedelta(days=365 * 20)).strftime("%Y%m%d")
+            _t8 = END.strftime("%Y%m%d")
+            _got = []
+            for _cyc, _f, _t in (("D", _f8, _t8), ("M", _f8[:6], _t8[:6])):
+                _js = _rrq.get(
+                    f"https://ecos.bok.or.kr/api/StatisticSearch/{_ek}/json/kr/1/9000/"
+                    f"722Y001/{_cyc}/{_f}/{_t}/0101000", timeout=60).json()
+                _rw = []
+                for _v in _js.values():
+                    if isinstance(_v, dict) and "row" in _v:
+                        _rw = _v["row"]
+                        break
+                for _r in _rw:
+                    _tm = str(_r.get("TIME", ""))
+                    try:
+                        if len(_tm) == 8:
+                            _d = f"{_tm[:4]}-{_tm[4:6]}-{_tm[6:8]}"
+                        elif len(_tm) == 6:
+                            _d = f"{_tm[:4]}-{_tm[4:6]}-01"
+                        else:
+                            continue
+                        _got.append((_d, float(_r["DATA_VALUE"])))
+                    except Exception:
+                        pass
+                if _got:
+                    break
+            if _got:
+                _got.sort()
+                rates_out["KR"] = _chg(_got)
+                print(f"[RATE] KR(722Y001): 최근 {rates_out['KR'][-1][0]} {rates_out['KR'][-1][1]}%")
+            else:
+                print("[FAIL] 정책금리 KR: ECOS 응답 없음(722Y001)")
+        except Exception as _e:
+            print(f"[FAIL] 정책금리 KR: {str(_e)[:120]}")
+
+    if rates_out:
+        rates_out["generated"] = END.isoformat()
+        with open("data_rates.js", "w", encoding="utf-8") as _fp:
+            _fp.write("window.RATES_UPD=" + _rjs.dumps(rates_out, ensure_ascii=False) + ";")
+        print(f"[RATE] 정책금리 {len(rates_out)-1}종 저장(data_rates.js)")
+except Exception as _e:
+    print(f"[FAIL] 정책금리 수집: {str(_e)[:200]}")
+if not os.path.exists("data_rates.js"):
+    with open("data_rates.js", "w", encoding="utf-8") as _fp:
+        _fp.write('window.RATES_UPD={"generated":""};')
 
 # ──────────────── 주요 기사 수집 (해외 경제 RSS 3종, 누적) ────────────────
 try:

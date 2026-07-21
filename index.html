@@ -182,7 +182,7 @@
         </details>
         <footer class="foot">
           <div><b>보기 전환</b> · 상단 카드를 누르면 해당국 차트로, '비교' 카드를 누르면 통합 차트로 전환됩니다. 점선은 한·미 금리차(한국 − 미국 상한)입니다.</div>
-          <div><b>데이터 성격</b> · 각 중앙은행 결정일 기준 변경 이력을 파일에 내장한 값입니다(자동 갱신 아님). 1일 조회는 계단형 지표 특성상 제외했습니다.</div>
+          <div><b>데이터 성격</b> · 각 중앙은행 결정일 기준 변경 이력입니다. 한국(한국은행 ECOS)·미국·유로존(FRED)은 자동 갱신되며, 영국·일본·중국은 내장 값이라 갱신이 필요하면 말씀해 주십시오. 1일 조회는 계단형 지표 특성상 제외했습니다.</div>
           <div><b>표기 유의</b> · 미국은 목표범위(상·하한), 일본은 유도 목표 대표치, 유로존은 결정일 기준(시행일과 수일 차이 가능)입니다.</div>
           <div><b>원자료</b> · <a href="https://www.federalreserve.gov/monetarypolicy.htm" target="_blank" rel="noopener">Fed</a> · <a href="https://www.ecb.europa.eu/stats/policy_and_exchange_rates/key_ecb_interest_rates/html/index.en.html" target="_blank" rel="noopener">ECB</a> · <a href="https://www.bankofengland.co.uk/boeapps/database/Bank-Rate.asp" target="_blank" rel="noopener">BoE</a> · <a href="https://www.boj.or.jp/en/" target="_blank" rel="noopener">BoJ</a> · <a href="https://tradingeconomics.com/china/interest-rate" target="_blank" rel="noopener">PBoC(집계)</a> · <a href="https://www.bok.or.kr/portal/singl/baseRate/list.do?dataSeCd=01&menuNo=200643" target="_blank" rel="noopener">한국은행</a></div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
@@ -820,6 +820,7 @@
 <script src="data_news.js"></script>
 <script src="data_ipo.js"></script>
 <script src="data_sub.js"></script>
+<script src="data_rates.js"></script>
 <script>
 "use strict";
 // ══════════ 공통 ══════════
@@ -990,6 +991,32 @@ const DATA = {
   KR:{country:"한국",bank:"한국은행",name:"한국은행 기준금리",dir:"hold",dirLabel:"동결",note:"8연속 동결 · 다음 회의 2026-07-16",nowText:"2.50%",color:"#17694F",
     series:[{label:"기준금리",color:"#17694F",pts:[["2008-03-07",5.00],["2008-08-07",5.25],["2008-10-09",5.00],["2008-10-27",4.25],["2008-11-07",4.00],["2008-12-11",3.00],["2009-01-09",2.50],["2009-02-12",2.00],["2010-07-09",2.25],["2010-11-16",2.50],["2011-01-13",2.75],["2011-03-10",3.00],["2011-06-10",3.25],["2012-07-12",3.00],["2012-10-11",2.75],["2013-05-09",2.50],["2014-08-14",2.25],["2014-10-15",2.00],["2015-03-12",1.75],["2015-06-11",1.50],["2016-06-09",1.25],["2017-11-30",1.50],["2018-11-30",1.75],["2019-07-18",1.50],["2019-10-16",1.25],["2020-03-16",.75],["2020-05-28",.50],["2021-08-26",.75],["2021-11-25",1.00],["2022-01-14",1.25],["2022-04-14",1.50],["2022-05-26",1.75],["2022-07-13",2.25],["2022-08-25",2.50],["2022-10-12",3.00],["2022-11-24",3.25],["2023-01-13",3.50],["2024-10-11",3.25],["2024-11-28",3.00],["2025-02-25",2.75],["2025-05-29",2.50]]}]}
 };
+// 자동 수집(data_rates.js) 변경분을 내장 이력에 이어붙임
+(function(){
+  const U=window.RATES_UPD;if(!U)return;
+  const MAP=[["KR","KR",0],["US_UP","US",0],["US_LO","US",1],["EA_DF","EA",0]];
+  const touched={};
+  MAP.forEach(m=>{
+    const src=U[m[0]],cc=m[1],si=m[2];
+    if(!src||!src.length||!DATA[cc]||!DATA[cc].series[si])return;
+    const tgt=DATA[cc].series[si],last=tgt.pts[tgt.pts.length-1][0];
+    let n=0;
+    src.forEach(p=>{if(p[0]>last){tgt.pts.push([p[0],p[1]]);n++;}});
+    if(n)touched[cc]=true;
+  });
+  Object.keys(touched).forEach(cc=>{
+    const d=DATA[cc],s0=d.series[0].pts,v=s0[s0.length-1][1],pv=s0.length>1?s0[s0.length-2][1]:v;
+    d.dir=(v>pv?"up":(v<pv?"down":"hold"));
+    d.dirLabel=(v>pv?"인상":(v<pv?"인하":"동결"));
+    if(cc==="US"&&d.series[1]){
+      const s1=d.series[1].pts;
+      d.nowText=s1[s1.length-1][1].toFixed(2)+"–"+v.toFixed(2)+"%";
+    }else{
+      d.nowText=v.toFixed(2)+"%";
+    }
+    d.note=s0[s0.length-1][0]+" 변경 반영 · 자동 갱신"+(U.generated?" ("+U.generated+")":"");
+  });
+})();
 function spreadOf(a,b){
   const dates=[...new Set([...a.map(p=>p[0]),...b.map(p=>p[0])])].sort();
   const at=(s,t)=>{let v=null;for(const p of s){if(p[0]<=t)v=p[1];else break;}return v;};
