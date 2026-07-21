@@ -957,18 +957,54 @@ if KRX_READY:
                 for it in _wj.loads(wdata).get("items", []):
                     code = str(it.get("code", "")).strip()
                     nm = str(it.get("name", "")).strip() or code
+                    ds = str(it.get("desc", "")).strip()
                     if code:
-                        watch["W_" + code.replace(".", "_")] = (code, nm)
+                        watch["W_" + code.replace(".", "_")] = (code, nm, ds)
                 print(f"[WATCH] 관심 종목 {len(watch)}건")
         except Exception as e:
             print(f"[FAIL] data_watch.json 파싱: {str(e)[:120]} · 쉼표/괄호 확인 필요(기본 종목으로 대체 수집합니다)")
         if not watch:
-            watch = {"W_035420": ("035420", "네이버"), "W_260870": ("260870", "SK시그넷")}
+            watch = {"W_035420": ("035420", "네이버", ""), "W_260870": ("260870", "SK시그넷", "")}
             print("[WATCH] 목록이 비었거나 파싱 실패 → 기본 종목으로 대체 수집")
-        for k, (code, lb) in watch.items():
+        SEC_KO = {
+            "Technology": "정보기술", "Industrials": "산업재", "Healthcare": "헬스케어",
+            "Financial Services": "금융", "Consumer Cyclical": "경기소비재",
+            "Consumer Defensive": "필수소비재", "Energy": "에너지", "Utilities": "유틸리티",
+            "Basic Materials": "소재", "Real Estate": "부동산",
+            "Communication Services": "커뮤니케이션",
+        }
+
+        def stock_meta(code):
+            """(회사명, 업종설명) 자동 조회 · 실패 시 (None, '')"""
+            nm2, desc2 = None, ""
+            cands = [code]
+            if code.isdigit() and len(code) == 6:
+                cands = [code + ".KS", code + ".KQ"]
+            for c in cands:
+                try:
+                    inf = yf.Ticker(c).info or {}
+                    if not nm2:
+                        nm2 = inf.get("shortName") or inf.get("longName")
+                    sec = SEC_KO.get(inf.get("sector"), inf.get("sector") or "")
+                    ind = inf.get("industry") or ""
+                    parts = [p for p in (sec, ind) if p]
+                    if parts:
+                        desc2 = " · ".join(parts)
+                    if nm2 and desc2:
+                        break
+                except Exception:
+                    continue
+            return nm2, desc2
+
+        for k, (code, lb, ds) in watch.items():
             try:
                 cap = None
                 if code.isdigit() and len(code) == 6:
+                    if lb == code:
+                        try:
+                            lb = stock.get_market_ticker_name(code) or code
+                        except Exception:
+                            pass
                     s = stock.get_market_ohlcv_by_date(f, t, code)["종가"]
                     ok = add(k, lb, "WATCH", s, "원")
                     try:
@@ -978,6 +1014,13 @@ if KRX_READY:
                         cap = None
                 else:
                     unit = "달러" if "." not in code else "현지통화"
+                    if lb == code:
+                        try:
+                            nm3 = (yf.Ticker(code).info or {}).get("shortName")
+                            if nm3:
+                                lb = nm3
+                        except Exception:
+                            pass
                     ok = add(k, lb, "WATCH", yff(code), unit)
                     try:
                         fi = yf.Ticker(code).fast_info
@@ -992,6 +1035,12 @@ if KRX_READY:
                         cap = None
                 if ok and cap:
                     series[k]["mcap"] = cap
+                if ok:
+                    if not ds:
+                        _, ds = stock_meta(code)
+                    if ds:
+                        series[k]["desc"] = ds
+                    print(f"       ({k} {lb}" + (f" · {ds}" if ds else "") + ")")
             except Exception as e:
                 print(f"[FAIL] {k}({code}): {e}")
     except Exception as e:
