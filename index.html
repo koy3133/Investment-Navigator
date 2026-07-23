@@ -676,7 +676,7 @@
         <div class="panel">
           <h2 class="ptitle" id="titleN">주요 기사</h2>
           <div id="newsList"></div>
-          <div class="note">제목을 누르면 한국어 번역본(구글 번역 경유)이, [원문]을 누르면 영어 원문이 새 창에서 열립니다. 별표(★)는 즐겨찾기 저장(현재 브라우저에 보관)입니다. 일부 매체는 번역 프록시를 차단해 원문만 열릴 수 있습니다.</div>
+          <div class="note">제목을 누르면 한국어 번역본(구글 번역 프록시 경유)이, [원문]을 누르면 영어 원문이 새 창에서 열립니다. 별표(★)는 즐겨찾기 저장(현재 브라우저에 보관)입니다. 일부 매체는 번역 프록시를 차단해 원문만 열릴 수 있습니다.</div>
         </div>
         </div>
         <footer class="foot">
@@ -2354,6 +2354,14 @@ let mode="ALL",inited=false;
 function favs(){try{return JSON.parse(localStorage.getItem("IN_NEWS_FAV")||"[]");}catch(e){return[];}}
 function setFavs(a){try{localStorage.setItem("IN_NEWS_FAV",JSON.stringify(a));}catch(e){}}
 function esc(t){return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");}
+function transUrl(u){
+  try{
+    const a=new URL(u);
+    const host=a.hostname.replace(/-/g,"--").replace(/\./g,"-")+".translate.goog";
+    const q=a.search?a.search+"&":"?";
+    return "https://"+host+a.pathname+q+"_x_tr_sl=auto&_x_tr_tl=ko&_x_tr_hl=ko";
+  }catch(e){return u;}
+}
 function buildChips(){
   const el=document.getElementById("chipsN");el.innerHTML="";
   [["ALL","전체"],["FAV","즐겨찾기 ★"]].forEach(p=>{
@@ -2377,7 +2385,7 @@ function draw(){
   rows.forEach(x=>{
     const on=fv.indexOf(x.id)>=0;
     const d=(x.d===prev&&mode!=="FAV")?"":x.d;prev=x.d;
-    h+='<tr><td class="nd">'+d+'</td><td><a href="https://translate.google.com/translate?sl=auto&tl=ko&u='+encodeURIComponent(x.u)+'" target="_blank" rel="noopener">'+esc(x.t)+'</a><a class="norg" href="'+esc(x.u)+'" target="_blank" rel="noopener">원문</a></td><td class="ns">'+esc(x.s)+'</td><td><button class="nstar'+(on?" on":"")+'" data-id="'+x.id+'" aria-label="즐겨찾기">'+(on?"★":"☆")+'</button></td></tr>';
+    h+='<tr><td class="nd">'+d+'</td><td><a href="'+esc(transUrl(x.u))+'" target="_blank" rel="noopener">'+esc(x.t)+'</a><a class="norg" href="'+esc(x.u)+'" target="_blank" rel="noopener">원문</a></td><td class="ns">'+esc(x.s)+'</td><td><button class="nstar'+(on?" on":"")+'" data-id="'+x.id+'" aria-label="즐겨찾기">'+(on?"★":"☆")+'</button></td></tr>';
   });
   h+='</tbody></table>';
   el.innerHTML=h;
