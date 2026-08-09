@@ -695,7 +695,7 @@
         </div>
         </div>
         <footer class="foot">
-          <div><b>데이터</b> · 상장 전 비상장사·해외 법인은 공개 API가 없어, 확정 증권신고서·뉴스 기반으로 조사해 수기 관리합니다.</div>
+          <div><b>데이터</b> · 금융감독원 전자공시(DART) 오픈API에서 최근 접수된 공모 증권신고서를 자동 수집합니다. 접수 최신순으로 표시하며, 청약일은 각 공시 원문에서 확인하십시오.</div>
           <div><b>주의</b> · 일정은 증권신고서 수리 과정에서 변경될 수 있으며, 청약 전 DART(전자공시) 등에서 최종 확인이 필요합니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
@@ -2408,7 +2408,7 @@ function draw(){
     const kb=(db!=null&&db>=0)?db:(db!=null?1e5-db:1e6);
     return ka-kb;
   });
-  if(!D.length){el.innerHTML='<div class="note" style="margin:8px 0">IPO 일정 데이터(data_ipo.js)를 불러오지 못했습니다. GitHub 저장소(웹)와 로컬 폴더에 data_ipo.js 파일이 index.html과 같은 위치에 있는지 확인하십시오.</div>';return;}
+  if(!D.length){el.innerHTML='<div class="note" style="margin:8px 0">현재 표시할 IPO 공모 일정이 없습니다. DART에 최근 접수된 공모 증권신고서가 있으면 자동으로 채워집니다(하루 2회 갱신).</div>';return;}
   let h='<div class="ipogrid">';
   D.forEach(x=>{
     const d=dday(x.sub_start);
@@ -2427,7 +2427,7 @@ function draw(){
        '<div class="ipodday '+ddCls+'">'+ddTxt+'</div>'+
        '<div><span class="ipostage">'+esc(x.stage)+'</span></div><div></div>'+
        (dates?'<div class="ipodates">'+dates+'</div>':'')+
-       (x.note?'<div class="iponote2">'+esc(x.note)+'</div>':'')+
+       (x.note?'<div class="iponote2">'+esc(x.note)+(x.url?' · <a href="'+esc(x.url)+'" target="_blank" rel="noopener" style="color:#2F4B7C">공시 원문</a>':'')+'</div>':'')+
        '</div>';
   });
   h+='</div>';
@@ -2502,7 +2502,7 @@ function show(k){
   if(k==="S"){stamp.textContent="산업별 주가지수 · 수집 파일 기반"+gen;SEC.init();}
   if(k==="W"){stamp.textContent="관심 주식 · 관심 종목 직접 관리"+gen;WCH.init();}
   if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
-  if(k==="P2"){stamp.textContent="IPO 청약 일정 · 관심 업체 수기 관리"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
+  if(k==="P2"){stamp.textContent="IPO 공모 일정 · DART 증권신고서"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
   if(k==="P3"){stamp.textContent="분양 청약 일정 · 청약홈 오픈API"+(window.SUB_DATA&&window.SUB_DATA.generated?" · 갱신일 "+window.SUB_DATA.generated:"");SUBM.init();}
   if(k==="B"){stamp.textContent="채권 금리 · 수집 파일 기반(FRED)"+gen;BND.init();}
   if(k==="C"){stamp.textContent="원자재 · 수집 파일 기반"+gen;CMD.init();}

@@ -765,6 +765,74 @@ if not os.path.exists("data_rates.js"):
     with open("data_rates.js", "w", encoding="utf-8") as _fp:
         _fp.write('window.RATES_UPD={"generated":""};')
 
+# ──────────────── IPO 공모 일정 (DART 증권신고서, DART_KEY 필요) ────────────────
+DART_KEY = os.getenv("DART_KEY")
+if DART_KEY:
+    try:
+        import requests as _drq
+        import json as _djs
+
+        _end = END
+        _bgn = (_end - dt.timedelta(days=120)).strftime("%Y%m%d")
+        _ends = _end.strftime("%Y%m%d")
+
+        # 지분증권 증권신고서(공모) 최근 목록
+        _items, _page = [], 1
+        while _page <= 5:
+            _js = _drq.get("https://opendart.fss.or.kr/api/list.json", params={
+                "crtfc_key": DART_KEY, "bgn_de": _bgn, "end_de": _ends,
+                "pblntf_ty": "C", "page_no": _page, "page_count": 100}, timeout=60).json()
+            if _js.get("status") != "000":
+                if _page == 1:
+                    print(f"[IPO]  DART 응답: {_js.get('status')} {_js.get('message','')}")
+                break
+            for _r in _js.get("list", []):
+                _nm = str(_r.get("report_nm", ""))
+                if "증권신고서" in _nm and ("지분증권" in _nm or "투자설명서" in _nm):
+                    _items.append({
+                        "name": str(_r.get("corp_name", "")),
+                        "corp": str(_r.get("corp_code", "")),
+                        "report": _nm,
+                        "rcept": str(_r.get("rcept_dt", ""))[:8],
+                        "rcept_no": str(_r.get("rcept_no", "")),
+                    })
+            if _page >= int(_js.get("total_page", 1)):
+                break
+            _page += 1
+
+        # 최신 접수건만 회사별로 유지
+        _seen, _uniq = set(), []
+        for _it in sorted(_items, key=lambda x: x["rcept"], reverse=True):
+            if _it["corp"] in _seen:
+                continue
+            _seen.add(_it["corp"])
+            _d = _it["rcept"]
+            _it_out = {
+                "id": "DART-" + _it["corp"],
+                "name": _it["name"],
+                "market": "공모(증권신고서 제출)",
+                "stage": "증권신고서 제출",
+                "country": "KR",
+                "note": f"{_it['report']} (접수 {_d[:4]}-{_d[4:6]}-{_d[6:8]})",
+                "sub_start": "", "sub_end": "", "list_date": "",
+                "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + _it["rcept_no"],
+            }
+            _uniq.append(_it_out)
+
+        if _uniq:
+            with open("data_ipo.js", "w", encoding="utf-8") as _fp:
+                _fp.write("window.IPO_DATA=" + _djs.dumps(
+                    {"generated": _end.isoformat(), "source": "DART 증권신고서",
+                     "items": _uniq[:60]}, ensure_ascii=False) + ";")
+            print(f"[IPO]  DART 증권신고서 {len(_uniq)}건 저장(data_ipo.js)")
+        else:
+            print("[IPO]  최근 120일 내 공모 증권신고서 없음(기존 파일 유지)")
+    except Exception as _e:
+        print(f"[FAIL] IPO 공모 일정(DART): {str(_e)[:200]}")
+else:
+    print("[안내] DART_KEY 미설정 → IPO 공모 일정은 건너뜁니다.")
+    print("       opendart.fss.or.kr 무료 인증키 발급 후 DART_KEY 설정 시 수집됩니다.")
+
 # ──────────────── 주요 기사 수집 (해외 경제 RSS 3종, 누적) ────────────────
 try:
     import requests
@@ -777,6 +845,7 @@ try:
         ("https://www.cnbc.com/id/100003114/device/rss/rss.html", "CNBC"),
         ("https://feeds.content.dowjones.io/public/rss/mw_topstories", "MarketWatch"),
         ("https://finance.yahoo.com/news/rssindex", "Yahoo Finance"),
+        ("https://www.investing.com/rss/news_25.rss", "Investing.com"),
     ]
     today = END.isoformat()
     buckets = []
