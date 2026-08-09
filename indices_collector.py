@@ -942,10 +942,27 @@ if SUB_KEY:
                     rs = str(pickk(r, ["RCEPT_BGNDE"]))[:10]
                     re_ = str(pickk(r, ["RCEPT_ENDDE"]))[:10]
                     an = str(pickk(r, ["PRZWNER"]))[:10]
-                    rg = pickk(r, ["SUBSCRPT_AREA"]) or str(pickk(r, ["ADRES"]))[:24]
+                    AREA = {
+                        "100": "서울", "200": "강원", "300": "대전·충남", "310": "충남",
+                        "320": "충북", "338": "세종", "340": "충남", "360": "충북",
+                        "400": "인천·경기", "410": "경기", "500": "광주·전남", "510": "전남",
+                        "520": "전북", "600": "부산·울산·경남", "610": "울산", "620": "경남",
+                        "630": "대구·경북", "640": "경북", "680": "부산", "700": "제주",
+                    }
+                    rg_code = str(pickk(r, ["SUBSCRPT_AREA_CODE"]) or "").strip()
+                    rg_nm = pickk(r, ["SUBSCRPT_AREA_CODE_NM"]) or pickk(r, ["SUBSCRPT_AREA_NM"])
+                    adr = str(pickk(r, ["HSSPLY_ADRES"]) or pickk(r, ["ADRES"]) or "").strip()
+                    gu = ""
+                    if adr:
+                        _ps = adr.split()
+                        gu = " ".join(_ps[:2]) if len(_ps) >= 2 else _ps[0]
+                    base_rg = str(rg_nm).strip() or AREA.get(rg_code, "")
+                    rg = (gu or base_rg or rg_code)
+                    if base_rg and gu and base_rg not in gu:
+                        rg = base_rg + " · " + gu
                     if not nm or not rs:
                         continue
-                    subs.append({"name": str(nm), "region": str(rg), "type": typ,
+                    subs.append({"name": str(nm), "region": str(rg)[:28], "type": typ,
                                  "r_start": rs, "r_end": re_, "announce": an})
                 print(f"[SUB]  {typ}: 수신 {len(rows)}건 · 채택 {len(subs)-got0}건")
                 if rows and len(subs) == got0:
