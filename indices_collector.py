@@ -765,144 +765,160 @@ if not os.path.exists("data_rates.js"):
     with open("data_rates.js", "w", encoding="utf-8") as _fp:
         _fp.write('window.RATES_UPD={"generated":""};')
 
-# ──────────────── IPO 공모 일정 (DART 증권신고서, DART_KEY 필요) ────────────────
-DART_KEY = os.getenv("DART_KEY")
-if DART_KEY:
-    try:
-        import requests as _drq
-        import json as _djs
+# ──────────────── IPO 공모 일정 (38커뮤니케이션 우선 → DART 폴백) ────────────────
+def _ipo_save(items, source, gen):
+    import json as _djs
+    with open("data_ipo.js", "w", encoding="utf-8") as _fp:
+        _fp.write("window.IPO_DATA=" + _djs.dumps(
+            {"generated": gen, "source": source, "items": items[:60]},
+            ensure_ascii=False) + ";")
 
-        _end = END
-        _bgn = (_end - dt.timedelta(days=120)).strftime("%Y%m%d")
-        _ends = _end.strftime("%Y%m%d")
 
-        # 지분증권 증권신고서(공모) 최근 목록
-        _items, _page = [], 1
-        while _page <= 5:
-            _js = _drq.get("https://opendart.fss.or.kr/api/list.json", params={
-                "crtfc_key": DART_KEY, "bgn_de": _bgn, "end_de": _ends,
-                "pblntf_ty": "C", "page_no": _page, "page_count": 100}, timeout=60).json()
-            if _js.get("status") != "000":
-                if _page == 1:
-                    print(f"[IPO]  DART 응답: {_js.get('status')} {_js.get('message','')}")
-                break
-            for _r in _js.get("list", []):
-                _nm = str(_r.get("report_nm", ""))
-                if "증권신고서" in _nm and ("지분증권" in _nm or "투자설명서" in _nm):
-                    _items.append({
-                        "name": str(_r.get("corp_name", "")),
-                        "corp": str(_r.get("corp_code", "")),
-                        "report": _nm,
-                        "rcept": str(_r.get("rcept_dt", ""))[:8],
-                        "rcept_no": str(_r.get("rcept_no", "")),
-                    })
-            if _page >= int(_js.get("total_page", 1)):
-                break
-            _page += 1
-
-        # 최신 접수건만 회사별로 유지
-        _seen, _uniq = set(), []
-        for _it in sorted(_items, key=lambda x: x["rcept"], reverse=True):
-            if _it["corp"] in _seen:
-                continue
-            _seen.add(_it["corp"])
-            _d = _it["rcept"]
-            _it_out = {
-                "id": "DART-" + _it["corp"],
-                "name": _it["name"],
-                "market": "공모(증권신고서 제출)",
-                "stage": "증권신고서 제출",
-                "country": "KR",
-                "note": f"{_it['report']} (접수 {_d[:4]}-{_d[4:6]}-{_d[6:8]})",
-                "sub_start": "", "sub_end": "", "list_date": "",
-                "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + _it["rcept_no"],
-            }
-            _uniq.append(_it_out)
-
-        if _uniq:
-            with open("data_ipo.js", "w", encoding="utf-8") as _fp:
-                _fp.write("window.IPO_DATA=" + _djs.dumps(
-                    {"generated": _end.isoformat(), "source": "DART 증권신고서",
-                     "items": _uniq[:60]}, ensure_ascii=False) + ";")
-            print(f"[IPO]  DART 증권신고서 {len(_uniq)}건 저장(data_ipo.js)")
-        else:
-            print("[IPO]  최근 120일 내 공모 증권신고서 없음(기존 파일 유지)")
-    except Exception as _e:
-        print(f"[FAIL] IPO 공모 일정(DART): {str(_e)[:200]}")
-else:
-    print("[안내] DART_KEY 미설정 → IPO 공모 일정은 건너뜁니다.")
-    print("       opendart.fss.or.kr 무료 인증키 발급 후 DART_KEY 설정 시 수집됩니다.")
-
-# ──────────────── 주요 기사 수집 (해외 경제 RSS 3종, 누적) ────────────────
-try:
-    import requests
-    import xml.etree.ElementTree as ET
-    import json as _json
+def _ipo_from_38():
+    """38커뮤니케이션 공모청약 일정표 파싱. 성공 시 items 리스트, 실패 시 None."""
+    import requests as _rq
     import re as _re
-    import hashlib
-
-    feeds = [
-        ("https://www.cnbc.com/id/100003114/device/rss/rss.html", "CNBC"),
-        ("https://feeds.content.dowjones.io/public/rss/mw_topstories", "MarketWatch"),
-        ("https://finance.yahoo.com/news/rssindex", "Yahoo Finance"),
-        ("https://www.investing.com/rss/news_25.rss", "Investing.com"),
-    ]
-    today = END.isoformat()
-    buckets = []
-    for furl, fsrc in feeds:
+    H = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                       "(KHTML, like Gecko) Chrome/120 Safari/537.36",
+         "Referer": "https://www.38.co.kr/"}
+    urls = ["https://www.38.co.kr/html/fund/ipo.htm?o=k",
+            "https://www.38.co.kr/html/fund/ipo.htm?o=r1",
+            "http://www.38.co.kr/html/fund/ipo.htm?o=k"]
+    html = None
+    for u in urls:
         try:
-            xmls = requests.get(furl, timeout=30,
-                                headers={"User-Agent": "Mozilla/5.0"}).content
-            root = ET.fromstring(xmls)
-            lst = []
-            for it in root.iter("item"):
-                t = (it.findtext("title") or "").strip()
-                u = (it.findtext("link") or "").strip()
-                if not t or not u.startswith("http"):
-                    continue
-                iid = hashlib.md5(t.encode("utf-8")).hexdigest()[:12]
-                lst.append({"d": today, "t": t, "s": fsrc, "u": u, "id": iid})
-                if len(lst) >= 6:
+            r = _rq.get(u, timeout=30, headers=H)
+            if r.status_code != 200 or not r.content:
+                continue
+            for enc in ("euc-kr", "cp949", "utf-8"):
+                try:
+                    html = r.content.decode(enc)
                     break
-            buckets.append(lst)
-        except Exception as e:
-            print(f"[MISS] 기사 피드({fsrc}): {str(e)[:80]}")
-    fresh, idx, fseen = [], 0, set()
-    while len(fresh) < 10:
-        added = False
-        for b in buckets:
-            if idx < len(b) and len(fresh) < 10 and b[idx]["id"] not in fseen:
-                fresh.append(b[idx])
-                fseen.add(b[idx]["id"])
-                added = True
-        if not added:
-            break
-        idx += 1
-    olds = []
-    try:
-        with open("data_news.js", encoding="utf-8") as fp:
-            m = _re.search(r"=\s*(\{.*\});?\s*$", fp.read(), _re.S)
-            if m:
-                olds = _json.loads(m.group(1)).get("items", [])
-    except Exception:
-        pass
-    seen = {o.get("id") for o in olds}
-    today_cnt = sum(1 for o in olds if o.get("d") == today)
-    adds = []
-    for n in fresh:
-        if n["id"] in seen or today_cnt + len(adds) >= 10:
+                except Exception:
+                    html = None
+            if html and ("청약" in html or "공모" in html):
+                break
+        except Exception:
             continue
-        adds.append(n)
-    items = (adds + olds)[:1200]
-    with open("data_news.js", "w", encoding="utf-8") as fp:
-        fp.write("window.NEWS_DATA=" + _json.dumps(
-            {"generated": today, "items": items}, ensure_ascii=False) + ";")
-    print(f"[NEWS] 신규 {len(adds)}건 · 누적 {len(items)}건 저장(data_news.js)")
-except Exception as e:
-    print(f"[FAIL] 주요 기사 수집: {str(e)[:200]}")
-    if not os.path.exists("data_news.js"):
-        with open("data_news.js", "w", encoding="utf-8") as fp:
-            fp.write('window.NEWS_DATA={"generated":"","items":[]};')
+    if not html:
+        return None
+
+    # 종목 행: 종목명 링크 + 날짜(YYYY.MM.DD ~ MM.DD) 패턴
+    rows = _re.findall(r"<tr[^>]*>(.*?)</tr>", html, _re.S)
+    out = []
+    for tr in rows:
+        cells = _re.findall(r"<td[^>]*>(.*?)</td>", tr, _re.S)
+        if len(cells) < 3:
+            continue
+        def _clean(x):
+            x = _re.sub(r"<[^>]+>", " ", x)
+            x = x.replace("&nbsp;", " ").replace("&amp;", "&")
+            return _re.sub(r"\s+", " ", x).strip()
+        texts = [_clean(c) for c in cells]
+        name = texts[0]
+        if not name or len(name) > 40 or "종목명" in name:
+            continue
+        joined = " ".join(texts)
+        # 청약일 구간: 2026.08.11~08.12 또는 2026.08.11 ~ 2026.08.12
+        m = _re.search(r"(20\d{2})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*~\s*"
+                       r"(?:(20\d{2})[.\-/])?(\d{1,2})[.\-/](\d{1,2})", joined)
+        if not m:
+            continue
+        y1, mo1, d1, y2, mo2, d2 = m.groups()
+        y2 = y2 or y1
+        rs = f"{y1}-{int(mo1):02d}-{int(d1):02d}"
+        re_ = f"{y2}-{int(mo2):02d}-{int(d2):02d}"
+        out.append({
+            "id": "38-" + name,
+            "name": name,
+            "market": "공모주 청약",
+            "stage": "청약",
+            "country": "KR",
+            "note": "38커뮤니케이션 공모 일정",
+            "sub_start": rs, "sub_end": re_, "list_date": "",
+            "url": "https://www.38.co.kr/html/fund/ipo.htm?o=k",
+        })
+    # 중복 제거(종목명 기준)
+    seen, uniq = set(), []
+    for it in out:
+        if it["name"] in seen:
+            continue
+        seen.add(it["name"])
+        uniq.append(it)
+    return uniq if uniq else None
+
+
+def _ipo_from_dart():
+    """DART 증권신고서(지분증권) 최근 목록. 성공 시 items, 실패 시 None."""
+    DART_KEY = os.getenv("DART_KEY")
+    if not DART_KEY:
+        print("[안내] DART_KEY 미설정 → DART 폴백 불가")
+        return None
+    import requests as _drq
+    _end = END
+    _bgn = (_end - dt.timedelta(days=120)).strftime("%Y%m%d")
+    _ends = _end.strftime("%Y%m%d")
+    _items, _page = [], 1
+    while _page <= 5:
+        _js = _drq.get("https://opendart.fss.or.kr/api/list.json", params={
+            "crtfc_key": DART_KEY, "bgn_de": _bgn, "end_de": _ends,
+            "pblntf_ty": "C", "page_no": _page, "page_count": 100}, timeout=60).json()
+        if _js.get("status") != "000":
+            if _page == 1:
+                print(f"[IPO]  DART 응답: {_js.get('status')} {_js.get('message', '')}")
+            break
+        for _r in _js.get("list", []):
+            _nm = str(_r.get("report_nm", ""))
+            if "증권신고서" in _nm and ("지분증권" in _nm or "투자설명서" in _nm):
+                _items.append({
+                    "name": str(_r.get("corp_name", "")),
+                    "corp": str(_r.get("corp_code", "")),
+                    "report": _nm,
+                    "rcept": str(_r.get("rcept_dt", ""))[:8],
+                    "rcept_no": str(_r.get("rcept_no", "")),
+                })
+        if _page >= int(_js.get("total_page", 1)):
+            break
+        _page += 1
+    _seen, _uniq = set(), []
+    for _it in sorted(_items, key=lambda x: x["rcept"], reverse=True):
+        if _it["corp"] in _seen:
+            continue
+        _seen.add(_it["corp"])
+        _d = _it["rcept"]
+        _uniq.append({
+            "id": "DART-" + _it["corp"], "name": _it["name"],
+            "market": "공모(증권신고서 제출)", "stage": "증권신고서 제출", "country": "KR",
+            "note": f"{_it['report']} (접수 {_d[:4]}-{_d[4:6]}-{_d[6:8]})",
+            "sub_start": "", "sub_end": "", "list_date": "",
+            "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=" + _it["rcept_no"],
+        })
+    return _uniq if _uniq else None
+
+try:
+    _ipo = None
+    _src = ""
+    try:
+        _ipo = _ipo_from_38()
+        if _ipo:
+            _src = "38커뮤니케이션"
+            print(f"[IPO]  38커뮤니케이션 {len(_ipo)}건 수집")
+    except Exception as _e:
+        print(f"[IPO]  38커뮤니케이션 실패({str(_e)[:60]}) → DART 폴백")
+    if not _ipo:
+        if not _src:
+            print("[IPO]  38커뮤니케이션 접근 불가 → DART 폴백")
+        _ipo = _ipo_from_dart()
+        if _ipo:
+            _src = "DART 증권신고서"
+            print(f"[IPO]  DART 증권신고서 {len(_ipo)}건 수집")
+    if _ipo:
+        _ipo_save(_ipo, _src, END.isoformat())
+        print(f"[IPO]  {_src} 기준 {len(_ipo)}건 저장(data_ipo.js)")
+    else:
+        print("[IPO]  38·DART 모두 결과 없음(기존 파일 유지)")
+except Exception as _e:
+    print(f"[FAIL] IPO 공모 일정: {str(_e)[:200]}")
 
 # ──────────────── 국내 분양 청약 일정 (청약홈 오픈API, 인증키 필요) ────────────────
 SUB_KEY = os.getenv("SUB_KEY")
@@ -960,9 +976,25 @@ if SUB_KEY:
                     rg = (gu or base_rg or rg_code)
                     if base_rg and gu and base_rg not in gu:
                         rg = base_rg + " · " + gu
+                    # 주택 유형(아파트/오피스텔/도시형 등)
+                    htype = str(pickk(r, ["HOUSE_SECD_NM"]) or pickk(r, ["HOUSE_DTL_SECD_NM"]) or "").strip()
+                    if not htype:
+                        _rt = str(pickk(r, ["RENT_SECD_NM"]) or "")
+                        htype = _rt.strip()
+                    # 총 공급 세대수
+                    units = ""
+                    for _uk in (["TOT_SUPLY_HSHLDCO"], ["SUPLY_HSHLDCO"], ["TOT", "HSHLDCO"]):
+                        _uv = pickk(r, _uk)
+                        if _uv:
+                            try:
+                                units = f"{int(float(str(_uv).replace(',', '')))}세대"
+                            except Exception:
+                                units = str(_uv)
+                            break
                     if not nm or not rs:
                         continue
                     subs.append({"name": str(nm), "region": str(rg)[:28], "type": typ,
+                                 "htype": htype, "units": units,
                                  "r_start": rs, "r_end": re_, "announce": an})
                 print(f"[SUB]  {typ}: 수신 {len(rows)}건 · 채택 {len(subs)-got0}건")
                 if rows and len(subs) == got0:
@@ -982,6 +1014,125 @@ else:
 if not os.path.exists("data_sub.js"):
     with open("data_sub.js", "w", encoding="utf-8") as fp:
         fp.write('window.SUB_DATA={"generated":"","items":[]};')
+
+
+# ──────────────── 주요 기사 수집 (공신력 매체 · 투자연관·중복도 점수 상위 10) ────────────────
+try:
+    import requests as _nrq
+    import xml.etree.ElementTree as _NET
+    import json as _njs
+    import re as _nre
+    import hashlib as _nh
+
+    # 공신력 있는 경제·시장 매체(투자 연관성 높은 피드 위주)
+    FEEDS = [
+        ("https://feeds.content.dowjones.io/public/rss/mw_topstories", "MarketWatch"),
+        ("https://www.cnbc.com/id/100003114/device/rss/rss.html", "CNBC"),
+        ("https://www.cnbc.com/id/20910258/device/rss/rss.html", "CNBC 경제"),
+        ("https://www.cnbc.com/id/10000664/device/rss/rss.html", "CNBC 마켓"),
+        ("https://finance.yahoo.com/news/rssindex", "Yahoo Finance"),
+        ("https://feeds.a.dj.com/rss/RSSMarketsMain.xml", "WSJ 마켓"),
+        ("https://www.investing.com/rss/news_25.rss", "Investing.com"),
+    ]
+    # 투자 판단에 중요한 키워드(가중치)
+    KW = {
+        "fed": 5, "federal reserve": 5, "interest rate": 5, "rate cut": 5, "rate hike": 5,
+        "inflation": 5, "cpi": 5, "recession": 5, "gdp": 4, "jobs": 3, "unemployment": 4,
+        "tariff": 4, "trade war": 4, "earnings": 3, "treasury": 4, "yield": 4, "bond": 3,
+        "oil": 3, "crude": 3, "gold": 2, "dollar": 3, "nvidia": 3, "chip": 3, "semiconductor": 3,
+        "ai": 2, "tech": 2, "stocks": 3, "market": 2, "nasdaq": 3, "s&p": 3, "dow": 2,
+        "china": 3, "ecb": 4, "bank": 2, "crypto": 2, "bitcoin": 2, "ipo": 2, "merger": 2,
+        "layoff": 2, "bankruptcy": 3, "default": 3,
+    }
+    STOP = ("sport", "celebrity", "movie", "recipe", "royal", "horoscope", "kardashian")
+
+    _today = END.isoformat()
+    _all = []
+    for _furl, _fsrc in FEEDS:
+        try:
+            _xml = _nrq.get(_furl, timeout=25, headers={"User-Agent": "Mozilla/5.0"}).content
+            _root = _NET.fromstring(_xml)
+            _n = 0
+            for _it in _root.iter("item"):
+                _t = (_it.findtext("title") or "").strip()
+                _u = (_it.findtext("link") or "").strip()
+                if not _t or not _u.startswith("http"):
+                    continue
+                _all.append({"t": _t, "u": _u, "s": _fsrc})
+                _n += 1
+                if _n >= 25:
+                    break
+        except Exception as _e:
+            print(f"[MISS] 기사 피드({_fsrc}): {str(_e)[:70]}")
+
+    # 중복도(같은 주제를 여러 매체가 보도) 계산용 키워드 집합
+    def _sig(title):
+        w = _nre.findall(r"[a-z]{4,}", title.lower())
+        return set(w) - {"says", "said", "will", "with", "from", "that", "this", "have", "amid", "after", "over"}
+
+    def _score(item, others):
+        tl = item["t"].lower()
+        if any(s in tl for s in STOP):
+            return -1
+        sc = 0
+        for k, w in KW.items():
+            if k in tl:
+                sc += w
+        # 중복도: 제목 키워드가 다른 매체 기사와 겹치는 정도
+        sig = _sig(item["t"])
+        dup = 0
+        for o in others:
+            if o is item or o["s"] == item["s"]:
+                continue
+            if len(sig & _sig(o["t"])) >= 2:
+                dup += 1
+        sc += min(dup, 4) * 3  # 여러 매체가 다룰수록 가점(조회수 대리지표)
+        return sc
+
+    for _it in _all:
+        _it["_sc"] = _score(_it, _all)
+
+    # 점수순 정렬 + 매체 다양성 확보하며 상위 선별
+    _ranked = sorted([x for x in _all if x["_sc"] >= 0], key=lambda x: -x["_sc"])
+    _fresh, _seenT, _perSrc = [], set(), {}
+    for _it in _ranked:
+        _key = _it["t"].lower()[:60]
+        if _key in _seenT:
+            continue
+        if _perSrc.get(_it["s"], 0) >= 4:   # 한 매체 최대 4건(다양성)
+            continue
+        _seenT.add(_key)
+        _perSrc[_it["s"]] = _perSrc.get(_it["s"], 0) + 1
+        _iid = _nh.md5(_it["t"].encode("utf-8")).hexdigest()[:12]
+        _fresh.append({"d": _today, "t": _it["t"], "s": _it["s"], "u": _it["u"], "id": _iid})
+        if len(_fresh) >= 10:
+            break
+
+    _olds = []
+    try:
+        with open("data_news.js", encoding="utf-8") as _fp:
+            _m = _nre.search(r"=\s*(\{.*\});?\s*$", _fp.read(), _nre.S)
+            if _m:
+                _olds = _njs.loads(_m.group(1)).get("items", [])
+    except Exception:
+        pass
+    _seen = {o.get("id") for o in _olds}
+    _tcnt = sum(1 for o in _olds if o.get("d") == _today)
+    _adds = []
+    for _n in _fresh:
+        if _n["id"] in _seen or _tcnt + len(_adds) >= 10:
+            continue
+        _adds.append(_n)
+    _items = (_adds + _olds)[:1500]
+    with open("data_news.js", "w", encoding="utf-8") as _fp:
+        _fp.write("window.NEWS_DATA=" + _njs.dumps(
+            {"generated": _today, "items": _items}, ensure_ascii=False) + ";")
+    print(f"[NEWS] 후보 {len(_all)}건 → 선별 신규 {len(_adds)}건 · 누적 {len(_items)}건")
+except Exception as _e:
+    print(f"[FAIL] 주요 기사 수집: {str(_e)[:200]}")
+    if not os.path.exists("data_news.js"):
+        with open("data_news.js", "w", encoding="utf-8") as _fp:
+            _fp.write('window.NEWS_DATA={"generated":"","items":[]};')
 
 # ──────────────── 국내 (pykrx, KRX 계정 필요) ────────────────
 if KRX_READY:

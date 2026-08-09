@@ -695,7 +695,7 @@
         </div>
         </div>
         <footer class="foot">
-          <div><b>데이터</b> · 금융감독원 전자공시(DART) 오픈API에서 최근 접수된 공모 증권신고서를 자동 수집합니다. 접수 최신순으로 표시하며, 청약일은 각 공시 원문에서 확인하십시오.</div>
+          <div><b>데이터</b> · 38커뮤니케이션 공모 일정을 우선 수집하고, 접근이 막히면 금융감독원 전자공시(DART) 증권신고서로 자동 전환합니다. 화면 상단에 현재 출처가 표시됩니다. 상세·청약 세부는 각 항목 링크에서 확인하십시오.</div>
           <div><b>주의</b> · 일정은 증권신고서 수리 과정에서 변경될 수 있으며, 청약 전 DART(전자공시) 등에서 최종 확인이 필요합니다.</div>
           <div><b>고지</b> · 정보 제공 목적이며 투자 자문이 아닙니다. 투자 판단과 책임은 이용자에게 있습니다.</div>
         </footer>
@@ -2465,7 +2465,7 @@ function draw(){
   let h='<div class="ipogrid">';
   rows.forEach(x=>{
     h+='<div class="ipocard'+(x.cls==="red"?" soon":"")+'">'+
-       '<div><span class="iponame">'+esc(x.name)+'</span> <span class="ipometa">'+esc(x.region)+' · '+esc(x.type)+'</span></div>'+
+       '<div><span class="iponame">'+esc(x.name)+'</span> <span class="ipometa">'+esc(x.region)+' · '+esc(x.type)+(x.htype?' · '+esc(x.htype):'')+(x.units?' · '+esc(x.units):'')+'</span></div>'+
        '<div class="ipodday '+x.cls+'">'+x.st+'</div>'+
        '<div class="ipodates">접수 '+esc(x.r_start)+(x.r_end?' ~ '+esc(x.r_end):'')+(x.announce?' · 당첨발표 '+esc(x.announce):'')+'</div>'+
        '</div>';
@@ -2502,7 +2502,7 @@ function show(k){
   if(k==="S"){stamp.textContent="산업별 주가지수 · 수집 파일 기반"+gen;SEC.init();}
   if(k==="W"){stamp.textContent="관심 주식 · 관심 종목 직접 관리"+gen;WCH.init();}
   if(k==="N"){stamp.textContent="주요 기사 · CNBC·MarketWatch·Yahoo"+(window.NEWS_DATA&&window.NEWS_DATA.generated?" · 갱신일 "+window.NEWS_DATA.generated:"");NWS.init();}
-  if(k==="P2"){stamp.textContent="IPO 공모 일정 · DART 증권신고서"+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
+  if(k==="P2"){stamp.textContent="IPO 공모 일정 · "+((window.IPO_DATA&&window.IPO_DATA.source)||"자동 수집")+(window.IPO_DATA&&window.IPO_DATA.generated?" · 갱신일 "+window.IPO_DATA.generated:"");IPO.init();}
   if(k==="P3"){stamp.textContent="분양 청약 일정 · 청약홈 오픈API"+(window.SUB_DATA&&window.SUB_DATA.generated?" · 갱신일 "+window.SUB_DATA.generated:"");SUBM.init();}
   if(k==="B"){stamp.textContent="채권 금리 · 수집 파일 기반(FRED)"+gen;BND.init();}
   if(k==="C"){stamp.textContent="원자재 · 수집 파일 기반"+gen;CMD.init();}
