@@ -979,8 +979,11 @@ if SUB_KEY:
                     # 주택 유형(아파트/오피스텔/도시형 등)
                     htype = str(pickk(r, ["HOUSE_SECD_NM"]) or pickk(r, ["HOUSE_DTL_SECD_NM"]) or "").strip()
                     if not htype:
-                        _rt = str(pickk(r, ["RENT_SECD_NM"]) or "")
-                        htype = _rt.strip()
+                        htype = str(pickk(r, ["RENT_SECD_NM"]) or "").strip()
+                    HT = {"APT": "아파트", "OFTL": "오피스텔", "URB": "도시형생활주택",
+                          "DODEJATA": "도시형", "REMOD": "리모델링", "LIVE": "생활숙박시설",
+                          "DDD": "도시형생활주택", "HHH": "아파트"}
+                    htype = HT.get(htype.upper(), htype)
                     # 총 공급 세대수
                     units = ""
                     for _uk in (["TOT_SUPLY_HSHLDCO"], ["SUPLY_HSHLDCO"], ["TOT", "HSHLDCO"]):
